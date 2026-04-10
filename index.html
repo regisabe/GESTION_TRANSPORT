@@ -329,7 +329,7 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap: wrap; gap:10px;">
                     <h3>Liste des Départs du Jour</h3>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn-action admin-only" style="width:auto" onclick="showSection('config-planning', 'Nouveau Départ', document.querySelector(\'[data-target=module-planning]\'))">
+                       <button class="btn-action admin-only" style="width:auto" onclick="showSection('config-planning', 'Nouveau Départ', document.querySelector('[data-target=module-planning]'))">
                             <span class="material-symbols-outlined">add</span> Programmer
                         </button>
                         <button class="btn-secondary admin-only" style="width:auto; font-size:13px;" onclick="purgerPlanning()">
@@ -1309,6 +1309,40 @@
         // Rafraîchir la vue vente
         updateSaleView();
     }
+
+// Télécharger une copie des données
+function exporterSauvegarde() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", "Transpro_Backup_" + new Date().toISOString().slice(0,10) + ".json");
+    dlAnchorElem.click();
+    showToast("Sauvegarde téléchargée avec succès !");
+}
+
+// Restaurer une copie
+function importerSauvegarde(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedDb = JSON.parse(e.target.result);
+            if(importedDb && importedDb.comp && importedDb.users) {
+                db = importedDb;
+                save();
+                showToast("Système restauré avec succès !", "success");
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast("Fichier non valide.", "error");
+            }
+        } catch (err) {
+            showToast("Erreur de lecture du fichier.", "error");
+        }
+    };
+    reader.readAsText(file);
+}
+
 </script>
 </body>
 </html>
