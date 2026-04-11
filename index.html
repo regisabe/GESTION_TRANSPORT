@@ -1,1348 +1,1580 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TranspManager V22 | Enterprise Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
-    
-    <style>
-        :root { 
-            --primary: #2563eb; --primary-hover: #1d4ed8; 
-            --sidebar: #0f172a; --sidebar-hover: #1e293b;
-            --bg: #f1f5f9; --surface: #ffffff;
-            --text-main: #0f172a; --text-muted: #64748b;
-            --success: #10b981; --danger: #ef4444; --warning: #f59e0b; 
-            --border: #e2e8f0;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
-        body { display: flex; height: 100vh; background: var(--bg); color: var(--text-main); overflow: hidden; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRANS-PRO ERP | Gestion Transport</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════ */
+:root {
+  --ink:       #0a0f1e;
+  --ink-2:     #1a2035;
+  --ink-3:     #2d3a55;
+  --slate:     #64748b;
+  --silver:    #94a3b8;
+  --mist:      #e2e8f0;
+  --snow:      #f8fafd;
+  --white:     #ffffff;
 
-        /* SCROLLBAR */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  --gold:      #f5a623;
+  --gold-soft: rgba(245,166,35,0.12);
+  --gold-glow: rgba(245,166,35,0.3);
 
-        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+  --blue:      #2563eb;
+  --blue-soft: rgba(37,99,235,0.1);
+  --green:     #059669;
+  --green-soft:rgba(5,150,105,0.1);
+  --red:       #dc2626;
+  --red-soft:  rgba(220,38,38,0.1);
+  --amber:     #d97706;
+  --amber-soft:rgba(217,119,6,0.1);
 
-        /* =============== LOGIN =============== */
-        #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: linear-gradient(135deg, var(--sidebar), #1e293b);
-            display: flex; align-items: center; justify-content: center; z-index: 9999;
-        }
-        .login-card { background: var(--surface); padding: 40px; border-radius: 24px; width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
-        .login-card.error-shake { animation: shake 0.4s ease-in-out; border: 2px solid var(--danger); }
-        .login-card .icon-lock { font-size: 48px; color: var(--primary); margin-bottom: 15px; }
+  --sb-w: 270px;
+  --radius: 14px;
+  --radius-sm: 8px;
 
-        /* =============== SIDEBAR =============== */
-        aside { width: 280px; background: var(--sidebar); color: white; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0,0,0,0.05); }
-        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem; }
-        .logo-text { font-size: 1.5rem; font-weight: 800; color: white; display: flex; align-items: center; gap: 10px; }
-        .logo-text span { color: #3b82f6; }
-        .nav-link { width: calc(100% - 2rem); margin: 0 1rem 0.5rem 1rem; padding: 12px 15px; border: none; background: transparent; color: #94a3b8; text-align: left; cursor: pointer; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; }
-        .nav-link:hover { background: var(--sidebar-hover); color: white; transform: translateX(5px); }
-        .nav-link.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-        .logout-btn { margin-top: auto; margin-bottom: 2rem; color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-        .logout-btn:hover { background: #ef4444; color: white; }
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow:    0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
+}
 
-        /* =============== LAYOUT =============== */
-        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        header { background: var(--surface); padding: 1.2rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-        .header-title { font-size: 1.2rem; font-weight: 700; }
-        .header-tools { display: flex; align-items: center; gap: 20px; color: var(--text-muted); font-weight: 500; }
-        .real-time { display: flex; align-items: center; gap: 5px; background: var(--bg); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; }
-        main { flex: 1; padding: 2rem; overflow-y: auto; }
-        .tab-content { display: none; animation: fadeIn 0.4s ease; }
-        .tab-content.active { display: block; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--snow);color:var(--ink);display:flex;height:100vh;overflow:hidden}
+h1,h2,h3,.logo-text,.stat-val,.section-title{font-family:'Syne',sans-serif}
 
-        /* =============== CARDS & STATS =============== */
-        .card { background: var(--surface); border-radius: 20px; padding: 1.5rem; border: 1px solid var(--border); margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
-        .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
-        .stat-card { background: var(--surface); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
-        .stat-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-        .stat-info h3 { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
-        .stat-info h2 { font-size: 1.5rem; font-weight: 800; }
-        .stat-info small { font-size: 0.75rem; color: var(--text-muted); }
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--mist);border-radius:3px}
 
-        /* =============== FORMS & BUTTONS =============== */
-        input, select { width: 100%; padding: 12px 15px; border: 1px solid var(--border); border-radius: 10px; margin-top: 8px; margin-bottom: 15px; font-size: 14px; outline: none; transition: 0.2s; background: #f8fafc; }
-        input:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        label { font-size: 0.9rem; font-weight: 600; color: var(--sidebar); }
-        .btn-action { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-action:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
-        .btn-secondary { background: #e2e8f0; color: var(--text-main); border: none; padding: 12px 25px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-secondary:hover { background: #cbd5e1; }
-        .btn-danger { background: #fee2e2; color: var(--danger); border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-danger:hover { background: var(--danger); color: white; }
-        .btn-valid { background: #dcfce7; color: var(--success); padding: 8px 15px; border-radius: 8px; border: none; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-valid:hover { background: var(--success); color: white; }
+.ms{font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle;line-height:1}
 
-        /* =============== TABLES =============== */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px 15px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { text-align: left; padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 0.93rem; font-weight: 500; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f8fafc; }
+/* ══════════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════════ */
+#login-screen{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--ink);
+  overflow:hidden;
+}
+#login-screen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 70% 50%, rgba(37,99,235,0.18) 0%, transparent 60%),
+             radial-gradient(ellipse 60% 50% at 20% 80%, rgba(245,166,35,0.12) 0%, transparent 60%);
+}
+.login-dots{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.login-dots span{position:absolute;width:2px;height:2px;background:rgba(255,255,255,0.15);border-radius:50%;animation:float linear infinite}
+@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:.3}100%{transform:translateY(-20px) scale(1.5);opacity:0}}
 
-        /* =============== VENTE / TICKET =============== */
-        .vente-container { display: grid; grid-template-columns: 1fr 420px; gap: 2rem; align-items: start; }
-        .preview-pane { background: var(--border); border-radius: 24px; padding: 20px; position: sticky; top: 0; min-height: 580px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        .ticket-live { background: white; width: 100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); color: black; }
+.login-card{
+  position:relative;z-index:1;
+  background:rgba(255,255,255,0.04);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:24px;
+  padding:44px 40px;
+  width:420px;
+  box-shadow:0 30px 80px rgba(0,0,0,0.5);
+  animation:loginAppear 0.6s cubic-bezier(.16,1,.3,1);
+}
+@keyframes loginAppear{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.login-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+.login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--blue),#7c3aed);border-radius:14px;display:flex;align-items:center;justify-content:center;color:white;font-size:24px}
+.login-logo-text{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:white}
+.login-logo-text span{color:var(--gold)}
+.login-sub{text-align:center;color:rgba(255,255,255,0.4);font-size:.85rem;margin-bottom:36px;letter-spacing:.5px}
+.login-label{display:block;font-size:.78rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.login-input{
+  width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;padding:13px 16px;font-size:.95rem;color:white;
+  font-family:'DM Sans',sans-serif;outline:none;transition:.2s;margin-bottom:14px;
+}
+.login-input::placeholder{color:rgba(255,255,255,0.25)}
+.login-input:focus{border-color:var(--gold);background:rgba(255,255,255,0.1);box-shadow:0 0 0 3px var(--gold-glow)}
+.login-btn{
+  width:100%;height:52px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,var(--blue) 0%,#7c3aed 100%);
+  color:white;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;
+  letter-spacing:.5px;transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:6px;
+}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(37,99,235,0.4)}
+.login-card.shake{animation:shake .4s ease-in-out;border-color:var(--red)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 
-        /* =============== CUSTOM MODAL (remplace confirm()) =============== */
-        #modal-overlay { 
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
-            z-index: 99999; align-items: center; justify-content: center;
-        }
-        #modal-overlay.show { display: flex; }
-        .modal-box { 
-            background: white; border-radius: 20px; padding: 2rem; max-width: 420px; width: 90%;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.3); text-align: center; animation: fadeIn 0.2s ease;
-        }
-        .modal-box .modal-icon { font-size: 48px; color: var(--warning); margin-bottom: 10px; }
-        .modal-box h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
-        .modal-box p { color: var(--text-muted); margin-bottom: 25px; font-size: 0.95rem; line-height: 1.5; }
-        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+/* ══════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════ */
+#sidebar{
+  width:var(--sb-w);flex-shrink:0;
+  background:var(--ink);
+  display:flex;flex-direction:column;
+  border-right:1px solid rgba(255,255,255,0.05);
+  position:relative;overflow:hidden;
+}
+#sidebar::before{
+  content:'';position:absolute;bottom:-60px;left:-40px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(37,99,235,0.15),transparent 70%);
+  pointer-events:none;
+}
+.sb-header{padding:28px 20px 20px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.sb-logo{display:flex;align-items:center;gap:10px}
+.sb-logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--blue),#7c3aed);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0}
+.sb-logo-text{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;color:white}
+.sb-logo-text em{color:var(--gold);font-style:normal}
+.sb-version{font-size:.7rem;color:rgba(255,255,255,0.25);margin-top:2px;letter-spacing:.5px}
 
-        /* =============== TOAST =============== */
-        #toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10000; }
-        .toast { background: var(--surface); border-left: 4px solid var(--success); box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 15px 20px; border-radius: 8px; display: flex; align-items: center; gap: 12px; font-weight: 600; animation: slideIn 0.3s ease forwards; min-width: 260px; }
-        .toast.error { border-left-color: var(--danger); }
-        .toast.warning { border-left-color: var(--warning); }
+.sb-section-label{padding:20px 20px 6px;font-size:.68rem;font-weight:700;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1.5px}
 
-        /* =============== BADGE =============== */
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-        .badge-success { background: #dcfce7; color: var(--success); }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-muted { background: var(--bg); color: var(--text-muted); }
-        .badge-primary { background: #dbeafe; color: var(--primary); }
+.nav-link{
+  display:flex;align-items:center;gap:11px;
+  margin:2px 10px;padding:11px 14px;
+  border:none;background:transparent;color:rgba(255,255,255,0.45);
+  border-radius:10px;cursor:pointer;text-align:left;width:calc(100% - 20px);
+  font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;
+  transition:all .2s ease;position:relative;
+}
+.nav-link .ms{font-size:20px;flex-shrink:0}
+.nav-link:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85)}
+.nav-link.active{background:rgba(37,99,235,0.15);color:white}
+.nav-link.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--blue);border-radius:0 2px 2px 0}
+.nav-link.active .ms{color:var(--blue)}
 
-        /* =============== PRINT =============== */
-        #print-zone { display: none; width: 80mm; background: white; }
-        @media print { 
-            body * { display: none !important; } 
-            #print-zone, #print-zone * { display: block !important; } 
-            #print-zone { position: absolute; left: 0; top: 0; width: 80mm; margin: 0; padding: 0; }
-            .print-full-page #print-zone { width: 100%; }
-        }
+.sb-spacer{flex:1}
+.sb-user{
+  margin:10px;padding:14px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;
+}
+.sb-user-info{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sb-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),#f97316);display:flex;align-items:center;justify-content:center;color:white;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;flex-shrink:0}
+.sb-uname{font-weight:600;color:white;font-size:.9rem;line-height:1.2}
+.sb-urole{font-size:.72rem;color:rgba(255,255,255,0.35)}
+.logout-btn{
+  width:100%;border:none;background:rgba(220,38,38,0.08);color:rgba(220,38,38,0.7);
+  border-radius:8px;padding:9px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:.82rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:.2s;
+}
+.logout-btn:hover{background:var(--red);color:white}
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
-        @keyframes fadeOut { to { transform: translateX(100%); opacity: 0; } }
-    </style>
+/* ══════════════════════════════════════════
+   MAIN WRAPPER
+══════════════════════════════════════════ */
+.main-wrapper{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{
+  background:var(--white);border-bottom:1px solid var(--mist);
+  padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.page-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:var(--ink)}
+.breadcrumb{font-size:.78rem;color:var(--silver);display:flex;align-items:center;gap:4px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-chip{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:20px;font-size:.82rem;font-weight:500;
+}
+.chip-clock{background:var(--snow);color:var(--slate);border:1px solid var(--mist)}
+.chip-status{background:#ecfdf5;color:var(--green);border:1px solid #d1fae5}
+.chip-status::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* MAIN */
+main{flex:1;overflow-y:auto;padding:28px}
+.tab-content{display:none;animation:fadeUp .3s ease}
+.tab-content.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ══════════════════════════════════════════
+   COMPONENTS
+══════════════════════════════════════════ */
+
+/* PAGE HEADER */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-header-left h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--ink)}
+.page-header-left p{font-size:.85rem;color:var(--slate);margin-top:3px}
+.page-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--white);border-radius:var(--radius);padding:20px;
+  border:1px solid var(--mist);box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;
+  transition:.25s;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.06}
+.stat-card.blue::after{background:var(--blue)}
+.stat-card.green::after{background:var(--green)}
+.stat-card.gold::after{background:var(--gold)}
+.stat-card.red::after{background:var(--red)}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.stat-icon.blue{background:var(--blue-soft);color:var(--blue)}
+.stat-icon.green{background:var(--green-soft);color:var(--green)}
+.stat-icon.gold{background:var(--gold-soft);color:var(--gold)}
+.stat-icon.red{background:var(--red-soft);color:var(--red)}
+.stat-icon.amber{background:var(--amber-soft);color:var(--amber)}
+.stat-body{flex:1;min-width:0}
+.stat-label{font-size:.75rem;font-weight:600;color:var(--silver);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px}
+.stat-val{font-family:'Syne',sans-serif;font-size:1.55rem;font-weight:800;color:var(--ink);line-height:1}
+.stat-sub{font-size:.75rem;color:var(--slate);margin-top:4px}
+
+/* CARD */
+.card{background:var(--white);border-radius:var(--radius);border:1px solid var(--mist);box-shadow:var(--shadow-sm);margin-bottom:20px}
+.card-header{padding:18px 22px;border-bottom:1px solid var(--mist);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
+.card-title .ms{font-size:18px;color:var(--blue)}
+.card-body{padding:22px}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 16px;text-align:left;
+  font-size:.72rem;font-weight:700;color:var(--silver);
+  text-transform:uppercase;letter-spacing:.8px;
+  background:var(--snow);border-bottom:1px solid var(--mist);
+}
+thead th:first-child{border-radius:8px 0 0 0}
+thead th:last-child{border-radius:0 8px 0 0}
+tbody td{padding:13px 16px;border-bottom:1px solid var(--mist);font-size:.9rem;color:var(--ink);font-weight:500;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:.15s}
+tbody tr:hover td{background:#fafbff}
+.td-muted{color:var(--slate);font-size:.83rem}
+
+/* EMPTY STATE */
+.empty-state{padding:48px 20px;text-align:center;color:var(--silver)}
+.empty-state .ms{font-size:40px;display:block;margin-bottom:10px;opacity:.4}
+.empty-state p{font-size:.88rem}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.3px}
+.badge-blue{background:var(--blue-soft);color:var(--blue)}
+.badge-green{background:var(--green-soft);color:var(--green)}
+.badge-red{background:var(--red-soft);color:var(--red)}
+.badge-amber{background:var(--amber-soft);color:var(--amber)}
+.badge-gray{background:var(--snow);color:var(--slate);border:1px solid var(--mist)}
+.badge-gold{background:var(--gold-soft);color:#b45309}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.875rem;transition:.2s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:var(--blue);color:white;padding:10px 20px;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.btn-primary:hover{background:#1d4ed8;box-shadow:0 4px 14px rgba(37,99,235,.35)}
+.btn-success{background:var(--green);color:white;padding:10px 20px;box-shadow:0 2px 8px rgba(5,150,105,.2)}
+.btn-success:hover{background:#047857}
+.btn-danger-soft{background:var(--red-soft);color:var(--red);padding:7px 12px;font-size:.8rem}
+.btn-danger-soft:hover{background:var(--red);color:white}
+.btn-ghost{background:var(--snow);color:var(--ink);padding:10px 18px;border:1px solid var(--mist)}
+.btn-ghost:hover{background:var(--mist)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#f97316);color:white;padding:10px 20px}
+.btn-gold:hover{opacity:.9}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-icon{padding:8px;border-radius:8px}
+.btn-confirm{background:var(--green-soft);color:var(--green);padding:7px 14px;font-size:.8rem;font-weight:700}
+.btn-confirm:hover{background:var(--green);color:white}
+
+/* FORMS */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:.78rem;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.form-control{
+  width:100%;padding:11px 14px;border:1.5px solid var(--mist);border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--ink);
+  background:var(--snow);outline:none;transition:.2s;
+}
+.form-control:focus{border-color:var(--blue);background:white;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.form-control::placeholder{color:var(--silver)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+/* PROGRESS BAR */
+.progress{height:5px;background:var(--mist);border-radius:3px;overflow:hidden;margin-top:5px;width:70px}
+.progress-bar{height:100%;border-radius:3px;transition:.3s}
+
+/* ══════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════ */
+#modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(10,15,30,.6);backdrop-filter:blur(4px);
+  z-index:99999;align-items:center;justify-content:center;
+}
+#modal-overlay.show{display:flex}
+.modal-box{
+  background:white;border-radius:20px;padding:36px 32px;max-width:420px;width:90%;
+  box-shadow:var(--shadow-lg);text-align:center;
+  animation:modalPop .25s cubic-bezier(.16,1,.3,1);
+}
+@keyframes modalPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.modal-icon-wrap{width:60px;height:60px;border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px}
+.modal-icon-wrap.warn{background:var(--amber-soft);color:var(--amber)}
+.modal-icon-wrap.danger{background:var(--red-soft);color:var(--red)}
+.modal-icon-wrap.success{background:var(--green-soft);color:var(--green)}
+.modal-box h3{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;margin-bottom:8px}
+.modal-box p{color:var(--slate);font-size:.9rem;line-height:1.6;margin-bottom:24px}
+.modal-actions{display:flex;gap:10px;justify-content:center}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+#toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:100000}
+.toast{
+  background:var(--white);border-radius:12px;padding:14px 18px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.12);
+  border-left:4px solid var(--green);
+  font-size:.88rem;font-weight:500;min-width:260px;
+  animation:toastIn .3s cubic-bezier(.16,1,.3,1);
+}
+.toast.error{border-left-color:var(--red)}
+.toast.warning{border-left-color:var(--amber)}
+.toast-icon{flex-shrink:0;font-size:20px}
+.toast.success .toast-icon{color:var(--green)}
+.toast.error .toast-icon{color:var(--red)}
+.toast.warning .toast-icon{color:var(--amber)}
+.toast-msg{flex:1;color:var(--ink)}
+@keyframes toastIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toastOut{to{transform:translateX(120%);opacity:0}}
+
+/* ══════════════════════════════════════════
+   DASHBOARD MODULES GRID
+══════════════════════════════════════════ */
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.module-card{
+  background:var(--white);border:1px solid var(--mist);border-radius:var(--radius);
+  padding:24px 20px;text-align:center;cursor:pointer;transition:.25s;
+  box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+}
+.module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.module-card.blue::before{background:linear-gradient(90deg,var(--blue),#7c3aed)}
+.module-card.green::before{background:linear-gradient(90deg,var(--green),#0d9488)}
+.module-card.gold::before{background:linear-gradient(90deg,var(--gold),#f97316)}
+.module-card.ink::before{background:linear-gradient(90deg,var(--ink),var(--ink-3))}
+.module-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.module-card .mc-icon{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px}
+.module-card h3{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--ink)}
+.module-card p{font-size:.78rem;color:var(--slate);margin-top:4px}
+
+/* ══════════════════════════════════════════
+   CAISSE MODULE
+══════════════════════════════════════════ */
+.caisse-closed{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;text-align:center;
+}
+.caisse-closed-icon{width:80px;height:80px;background:var(--snow);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:38px;color:var(--silver);margin-bottom:20px;border:1px solid var(--mist)}
+.caisse-closed h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:8px}
+.caisse-closed p{color:var(--slate);margin-bottom:24px;font-size:.9rem;max-width:320px}
+
+/* ══════════════════════════════════════════
+   VENTE (TICKET)
+══════════════════════════════════════════ */
+.vente-layout{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+.price-display{
+  background:linear-gradient(135deg,var(--ink) 0%,var(--ink-2) 100%);
+  border-radius:12px;padding:28px;text-align:center;margin:20px 0;position:relative;overflow:hidden;
+}
+.price-display::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(37,99,235,.15)}
+.price-display .price-label{font-size:.78rem;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.price-display .price-amount{font-family:'Syne',sans-serif;font-size:2.8rem;font-weight:800;color:white;line-height:1}
+.price-display .price-info{font-size:.82rem;color:rgba(255,255,255,.45);margin-top:8px}
+.price-display .price-seats{font-size:.88rem;color:#86efac;font-weight:600;margin-top:4px}
+
+.preview-pane{
+  background:var(--ink-2);border-radius:var(--radius);padding:18px;
+  position:sticky;top:0;
+}
+.preview-label{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px}
+.ticket-shell{background:white;border-radius:8px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+
+/* ══════════════════════════════════════════
+   TICKET PRINT STYLES
+══════════════════════════════════════════ */
+#print-zone{display:none;width:80mm;background:white;font-family:'Courier New',monospace}
+@media print{
+  body *{display:none!important}
+  #print-zone,#print-zone *{display:block!important}
+  #print-zone{position:absolute;left:0;top:0;width:80mm;margin:0;padding:0}
+  .print-full-page #print-zone{width:100%}
+}
+
+/* ══════════════════════════════════════════
+   CONFIG SECTIONS
+══════════════════════════════════════════ */
+.config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.config-card{
+  background:var(--white);border:1px solid var(--mist);border-radius:var(--radius);
+  padding:28px 20px;text-align:center;cursor:pointer;transition:.25s;
+  box-shadow:var(--shadow-sm);
+}
+.config-card:hover{border-color:var(--blue);box-shadow:var(--shadow),0 0 0 3px var(--blue-soft);transform:translateY(-3px)}
+.config-card .cc-icon{width:52px;height:52px;border-radius:14px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.config-card h3{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--ink)}
+
+/* Checkbox style */
+.check-group{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.check-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--snow);border:1.5px solid var(--mist);border-radius:8px;cursor:pointer;transition:.15s;user-select:none}
+.check-item:hover{border-color:var(--blue);background:#eff6ff}
+.check-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
+.check-item span{font-size:.85rem;font-weight:500;color:var(--ink)}
+.check-item.admin-check{border-style:dashed;border-color:var(--amber)}
+.check-item.admin-check:has(input:checked){background:var(--amber-soft);border-color:var(--amber);border-style:solid}
+
+/* Planning fill bar */
+.fill-bar{display:flex;align-items:center;gap:8px}
+.fill-text{font-weight:700;font-size:.88rem;white-space:nowrap}
+
+/* ══════════════════════════════════════════
+   SEARCH INPUT INSIDE CARD
+══════════════════════════════════════════ */
+.search-input{
+  padding:8px 12px 8px 34px;background:var(--snow);border:1.5px solid var(--mist);
+  border-radius:8px;font-size:.85rem;outline:none;transition:.2s;width:200px;
+  font-family:'DM Sans',sans-serif;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:10px center;
+}
+.search-input:focus{border-color:var(--blue);background-color:white;width:240px}
+
+</style>
 </head>
 <body>
 
-<!-- ======================== TOAST ======================== -->
+<!-- ╔══════════════════════════════════╗ -->
+<!--   TOAST                            -->
+<!-- ╚══════════════════════════════════╝ -->
 <div id="toast-container"></div>
 
-<!-- ======================== MODAL (remplace confirm()) ======================== -->
+<!-- ╔══════════════════════════════════╗ -->
+<!--   MODAL                            -->
+<!-- ╚══════════════════════════════════╝ -->
 <div id="modal-overlay">
-    <div class="modal-box">
-        <span class="material-symbols-outlined modal-icon">help</span>
-        <h3 id="modal-title">Confirmation</h3>
-        <p id="modal-message">Êtes-vous sûr ?</p>
-        <div class="modal-actions">
-            <button class="btn-secondary" onclick="modalClose()">Annuler</button>
-            <button class="btn-action" id="modal-confirm-btn" style="background: var(--danger);">Confirmer</button>
-        </div>
+  <div class="modal-box">
+    <div class="modal-icon-wrap warn" id="modal-icon"><span class="ms">help</span></div>
+    <h3 id="modal-title">Confirmation</h3>
+    <p id="modal-message">Êtes-vous sûr ?</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="modalClose()">Annuler</button>
+      <button class="btn btn-danger-soft" id="modal-confirm-btn" style="padding:10px 20px;font-size:.875rem;">Confirmer</button>
     </div>
+  </div>
 </div>
 
-<!-- ======================== LOGIN ======================== -->
+<!-- ╔══════════════════════════════════╗ -->
+<!--   LOGIN                            -->
+<!-- ╚══════════════════════════════════╝ -->
 <div id="login-screen">
-    <div class="login-card" id="login-box">
-        <span class="material-symbols-outlined icon-lock">admin_panel_settings</span>
-        <h2 style="color: var(--sidebar); font-weight: 800; margin-bottom: 5px;">TRANS-PRO</h2>
-        <p style="color: var(--text-muted); margin-bottom: 30px;">Espace Sécurisé ERP</p>
-        <input type="text" id="login-user" placeholder="Identifiant" style="text-align: center;"
-               onkeydown="if(event.key==='Enter') document.getElementById('login-pass').focus()">
-        <input type="password" id="login-pass" placeholder="Mot de passe" style="text-align: center;"
-               onkeydown="if(event.key==='Enter') handleLogin()">
-        <button class="btn-action" style="width: 100%; height: 50px; margin-top: 10px;" onclick="handleLogin()">
-            <span class="material-symbols-outlined">login</span> Connexion
-        </button>
+  <div class="login-dots" id="login-dots"></div>
+  <div class="login-card" id="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon"><span class="ms">directions_bus</span></div>
+      <div class="login-logo-text">TRANS<span>PRO</span></div>
     </div>
+    <div class="login-sub">PLATEFORME ERP DE GESTION TRANSPORT</div>
+    <label class="login-label" for="login-user">Identifiant</label>
+    <input class="login-input" id="login-user" type="text" placeholder="Votre identifiant"
+           onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    <label class="login-label" for="login-pass">Mot de passe</label>
+    <input class="login-input" id="login-pass" type="password" placeholder="••••••••"
+           onkeydown="if(event.key==='Enter')handleLogin()">
+    <button class="login-btn" onclick="handleLogin()">
+      <span class="ms">lock_open</span> Connexion
+    </button>
+  </div>
 </div>
 
-<!-- ======================== SIDEBAR ======================== -->
-<aside id="main-sidebar" style="display: none;">
-    <div class="sidebar-header">
-        <div class="logo-text">
-            <span class="material-symbols-outlined" style="font-size: 32px;">directions_bus</span> TRANS<span>PRO</span>
-        </div>
-        <small style="color: #475569; font-size: 0.75rem;">v22 Enterprise</small>
+<!-- ╔══════════════════════════════════╗ -->
+<!--   APP SHELL                        -->
+<!-- ╚══════════════════════════════════╝ -->
+<aside id="sidebar" style="display:none">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <div class="sb-logo-icon"><span class="ms">directions_bus</span></div>
+      <div>
+        <div class="sb-logo-text">TRANS<em>PRO</em></div>
+        <div class="sb-version">ERP v3 · Enterprise</div>
+      </div>
     </div>
-    <div id="sidebar-menu">
-        <button class="nav-link active" data-target="main-dashboard" onclick="showSection('main-dashboard', 'Vue d\'ensemble', this)">
-            <span class="material-symbols-outlined">dashboard</span> Accueil
-        </button>
-        <button class="nav-link" data-target="module-caisse" onclick="showSection('module-caisse', 'Gestion de Caisse', this)">
-            <span class="material-symbols-outlined">point_of_sale</span> Ma Caisse
-        </button>
-        <button class="nav-link" data-target="module-vente" onclick="showSection('module-vente', 'Guichet de Vente', this)">
-            <span class="material-symbols-outlined">confirmation_number</span> Vente Billet
-        </button>
-        <button class="nav-link" data-target="module-planning" onclick="showSection('module-planning', 'Planning des Départs', this)">
-            <span class="material-symbols-outlined">calendar_month</span> Planning
-        </button>
-        <button class="nav-link admin-only" data-target="module-recettes" onclick="showSection('module-recettes', 'Bilan Financier', this)">
-            <span class="material-symbols-outlined">account_balance_wallet</span> Recettes
-        </button>
-        <button class="nav-link admin-only" data-target="main-config" onclick="showSection('main-config', 'Paramètres Système', this)">
-            <span class="material-symbols-outlined">settings</span> Configuration
-        </button>
-    </div>
-    <button class="nav-link logout-btn" onclick="handleLogout()">
-        <span class="material-symbols-outlined">logout</span> Déco (<span id="current-user-display"></span>)
+  </div>
+
+  <div id="sidebar-menu">
+    <div class="sb-section-label">Navigation</div>
+    <button class="nav-link active" data-target="main-dashboard" onclick="showSection('main-dashboard','Vue d\'ensemble',this)">
+      <span class="ms">grid_view</span> Tableau de Bord
     </button>
+    <button class="nav-link" data-target="module-caisse" onclick="showSection('module-caisse','Gestion de Caisse',this)">
+      <span class="ms">point_of_sale</span> Ma Caisse
+    </button>
+    <button class="nav-link" data-target="module-vente" onclick="showSection('module-vente','Guichet de Vente',this)">
+      <span class="ms">confirmation_number</span> Vente Billet
+    </button>
+    <button class="nav-link" data-target="module-planning" onclick="showSection('module-planning','Planning des Départs',this)">
+      <span class="ms">calendar_month</span> Planning
+    </button>
+    <div class="sb-section-label admin-only">Administration</div>
+    <button class="nav-link admin-only" data-target="module-recettes" onclick="showSection('module-recettes','Bilan Financier',this)">
+      <span class="ms">account_balance_wallet</span> Recettes
+    </button>
+    <button class="nav-link admin-only" data-target="main-config" onclick="showSection('main-config','Paramètres',this)">
+      <span class="ms">settings</span> Configuration
+    </button>
+  </div>
+
+  <div class="sb-spacer"></div>
+  <div class="sb-user">
+    <div class="sb-user-info">
+      <div class="sb-avatar" id="sb-avatar">A</div>
+      <div>
+        <div class="sb-uname" id="current-user-display">Admin</div>
+        <div class="sb-urole" id="sb-role">Super Administrateur</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">
+      <span class="ms" style="font-size:16px">logout</span> Déconnexion
+    </button>
+  </div>
 </aside>
 
-<!-- ======================== MAIN WRAPPER ======================== -->
-<div class="main-wrapper" id="content-area" style="display: none;">
-    <header>
-        <div class="header-title" id="page-title-display">Vue d'ensemble</div>
-        <div class="header-tools">
-            <div class="real-time">
-                <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
-                <span id="clock-display">00:00:00</span>
-            </div>
-            <div class="real-time" style="background: #e0f2fe; color: #0369a1;">
-                <span class="material-symbols-outlined" style="font-size: 18px;">account_circle</span>
-                <span id="header-user">—</span>
-            </div>
+<div class="main-wrapper" id="content-area" style="display:none">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="breadcrumb">
+        <span class="ms" style="font-size:14px">directions_bus</span>
+        <span>TRANS-PRO</span>
+        <span class="ms" style="font-size:12px">chevron_right</span>
+      </div>
+      <div class="page-title" id="page-title-display">Tableau de Bord</div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-chip chip-status">
+        <span class="ms" style="font-size:14px">wifi</span>
+        <span id="header-user">En ligne</span>
+      </div>
+      <div class="topbar-chip chip-clock">
+        <span class="ms" style="font-size:14px">schedule</span>
+        <span id="clock-display">00:00:00</span>
+      </div>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ═══════════ DASHBOARD ═══════════ -->
+    <div id="main-dashboard" class="tab-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Tableau de Bord</h2>
+          <p>Vue d'ensemble de votre activité en temps réel</p>
         </div>
-    </header>
-
-    <main>
-
-        <!-- ======= DASHBOARD ======= -->
-        <div id="main-dashboard" class="tab-content">
-            <div class="module-grid" style="margin-bottom: 1.5rem;" id="dashboard-stats"></div>
-            <div class="module-grid" id="dashboard-grid"></div>
+        <div class="page-header-actions">
+          <div class="topbar-chip chip-clock" style="border:1px solid var(--mist);" id="dash-date"></div>
         </div>
+      </div>
+      <div class="stats-row" id="dashboard-stats"></div>
+      <div class="modules-grid" id="dashboard-grid"></div>
+    </div>
 
-        <!-- ======= CAISSE ======= -->
-        <div id="module-caisse" class="tab-content">
-            <div class="card" id="caisse-closed-view" style="text-align: center; padding: 50px;">
-                <span class="material-symbols-outlined" style="font-size: 64px; color: var(--text-muted);">lock_clock</span>
-                <h2 style="margin: 15px 0 8px;">Caisse fermée</h2>
-                <p style="color: var(--text-muted); margin-bottom: 25px;">Ouvrez votre caisse pour commencer à vendre des billets.</p>
-                <button class="btn-action" style="margin: 0 auto;" onclick="openShift()">
-                    <span class="material-symbols-outlined">lock_open</span> Ouvrir ma caisse
-                </button>
-            </div>
-
-            <div id="caisse-open-view" style="display: none;">
-                <div class="module-grid" style="margin-bottom: 20px;">
-                    <div class="stat-card" style="border-left: 4px solid var(--success);">
-                        <div class="stat-icon" style="background:#dcfce7; color:var(--success);">
-                            <span class="material-symbols-outlined">point_of_sale</span>
-                        </div>
-                        <div class="stat-info">
-                            <h3>Statut</h3>
-                            <h2 style="color:var(--success)">OUVERTE</h2>
-                            <small id="caisse-open-since">—</small>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="border-left: 4px solid var(--primary);">
-                        <div class="stat-icon" style="background:#dbeafe; color:var(--primary);">
-                            <span class="material-symbols-outlined">payments</span>
-                        </div>
-                        <div class="stat-info">
-                            <h3>Bilan Provisoire</h3>
-                            <h2 id="caisse-total">0 F</h2>
-                        </div>
-                    </div>
-                    <div class="stat-card" style="border-left: 4px solid var(--warning);">
-                        <div class="stat-icon" style="background:#fef3c7; color:var(--warning);">
-                            <span class="material-symbols-outlined">confirmation_number</span>
-                        </div>
-                        <div class="stat-info">
-                            <h3>Billets Vendus</h3>
-                            <h2 id="caisse-count">0</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3>Historique de la session</h3>
-                        <button class="btn-danger" onclick="closeShift()">
-                            <span class="material-symbols-outlined" style="font-size:16px; vertical-align: middle;">lock</span> Clôturer la Caisse
-                        </button>
-                    </div>
-                    <table>
-                        <thead><tr><th>HEURE</th><th>DESTINATION</th><th>MÉTHODE</th><th>MONTANT</th></tr></thead>
-                        <tbody id="caisse-history-body"></tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- ═══════════ CAISSE ═══════════ -->
+    <div id="module-caisse" class="tab-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Gestion de Caisse</h2>
+          <p>Ouvrez, gérez et clôturez votre session de caisse</p>
         </div>
+        <div class="page-header-actions" id="caisse-actions"></div>
+      </div>
 
-        <!-- ======= VENTE ======= -->
-        <div id="module-vente" class="tab-content">
-            <div class="vente-container">
-                <div class="card">
-                    <h3 style="margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
-                        <span class="material-symbols-outlined">point_of_sale</span> Caisse Enregistreuse
-                    </h3>
-                    
-                    <label>Destination</label>
-                    <select id="v-dest" onchange="updateSaleView()" style="font-size: 15px; font-weight: bold;"></select>
-                    
-                    <label>Mode de paiement</label>
-                    <select id="v-payment" onchange="updateSaleView()">
-                        <option value="ESPECES">Espèces</option>
-                        <option value="WAVE">Wave</option>
-                        <option value="ORANGE MONEY">Orange Money</option>
-                        <option value="MTN MONEY">MTN Money</option>
-                    </select>
+      <div class="card" id="caisse-closed-view">
+        <div class="caisse-closed">
+          <div class="caisse-closed-icon"><span class="ms">lock_clock</span></div>
+          <h2>Caisse fermée</h2>
+          <p>Ouvrez votre caisse pour commencer à enregistrer des ventes et imprimer des billets.</p>
+          <button class="btn btn-primary" onclick="openShift()">
+            <span class="ms">lock_open</span> Ouvrir ma caisse
+          </button>
+        </div>
+      </div>
 
-                    <div style="background:#f8fafc; padding:30px 20px; border-radius:15px; text-align:center; border:2px dashed var(--primary); margin:20px 0;">
-                        <p id="v-info" style="color: var(--text-muted); font-weight: 600; font-size: 0.9rem;">En attente de sélection</p>
-                        <h1 id="v-price" style="font-size: 3rem; color: var(--text-main); margin: 10px 0;">0 F</h1>
-                        <p id="v-seats-info" style="font-weight:800; color:var(--success); font-size: 1rem;"></p>
-                    </div>
-                    
-                    <button class="btn-action" style="width:100%; height:65px; font-size:18px;" onclick="confirmSale()">
-                        <span class="material-symbols-outlined">print</span> VALIDER & IMPRIMER
-                    </button>
-                </div>
-
-                <div class="preview-pane">
-                    <small style="font-weight:800; color:var(--text-muted); letter-spacing: 1px; align-self: flex-start;">SIMULATION IMPRESSION</small>
-                    <div class="ticket-live" style="width:100%;">
-                        <div id="ui-live-preview" style="padding: 20px; font-family: 'Courier New', Courier, monospace;">
-                            <div style="text-align:center; color:#94a3b8; padding: 80px 0;">Ticket inactif</div>
-                        </div>
-                    </div>
-                </div>
+      <div id="caisse-open-view" style="display:none">
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+          <div class="stat-card green">
+            <div class="stat-icon green"><span class="ms">point_of_sale</span></div>
+            <div class="stat-body">
+              <div class="stat-label">Statut</div>
+              <div class="stat-val" style="color:var(--green);font-size:1.1rem">OUVERTE</div>
+              <div class="stat-sub" id="caisse-open-since">—</div>
             </div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon blue"><span class="ms">payments</span></div>
+            <div class="stat-body">
+              <div class="stat-label">Bilan provisoire</div>
+              <div class="stat-val" id="caisse-total">0 F</div>
+            </div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-icon gold"><span class="ms">confirmation_number</span></div>
+            <div class="stat-body">
+              <div class="stat-label">Billets vendus</div>
+              <div class="stat-val" id="caisse-count">0</div>
+            </div>
+          </div>
         </div>
 
-        <!-- ======= PLANNING ======= -->
-        <div id="module-planning" class="tab-content">
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap: wrap; gap:10px;">
-                    <h3>Liste des Départs du Jour</h3>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                       <button class="btn-action admin-only" style="width:auto" onclick="showSection('config-planning', 'Nouveau Départ', document.querySelector('[data-target=module-planning]'))">
-                            <span class="material-symbols-outlined">add</span> Programmer
-                        </button>
-                        <button class="btn-secondary admin-only" style="width:auto; font-size:13px;" onclick="purgerPlanning()">
-                            <span class="material-symbols-outlined">delete_sweep</span> Purger Partis
-                        </button>
-                    </div>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>HEURE</th><th>DESTINATION</th><th>CAR</th>
-                            <th>REMPLISSAGE</th><th>STATUT</th><th class="admin-only" style="width:80px;">ACTION</th>
-                        </tr>
-                    </thead>
-                    <tbody id="live-planning-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ======= RECETTES ======= -->
-        <div id="module-recettes" class="tab-content admin-only">
-            <div class="module-grid" style="margin-bottom: 20px;">
-                <div class="stat-card" style="border-bottom: 4px solid var(--success);">
-                    <div class="stat-icon" style="background:#dcfce7; color:var(--success);">
-                        <span class="material-symbols-outlined">account_balance</span>
-                    </div>
-                    <div class="stat-info">
-                        <h3>CA Global</h3>
-                        <h2 id="r-total">0 F</h2>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--primary);">
-                    <div class="stat-icon" style="background:#dbeafe; color:var(--primary);">
-                        <span class="material-symbols-outlined">confirmation_number</span>
-                    </div>
-                    <div class="stat-info">
-                        <h3>Billets Global</h3>
-                        <h2 id="r-count">0</h2>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-bottom: 4px solid var(--warning);">
-                    <div class="stat-icon" style="background:#fef3c7; color:var(--warning);">
-                        <span class="material-symbols-outlined">today</span>
-                    </div>
-                    <div class="stat-info">
-                        <h3>CA Aujourd'hui</h3>
-                        <h2 id="r-today">0 F</h2>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
-                    <h3>Validation des Caisses</h3>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn-action" style="display:inline-flex; width:auto; background:var(--success);" onclick="exportReport('CSV')">
-                            <span class="material-symbols-outlined">table_view</span> CSV/Excel
-                        </button>
-                        <button class="btn-action" style="display:inline-flex; width:auto; background:var(--sidebar);" onclick="exportReport('PDF')">
-                            <span class="material-symbols-outlined">print</span> Imprimer
-                        </button>
-                    </div>
-                </div>
-                <table id="report-table">
-                    <thead><tr><th>CAISSIER</th><th>OUVERTURE</th><th>CLÔTURE</th><th>MONTANT</th><th>STATUT</th></tr></thead>
-                    <tbody id="shifts-body"></tbody>
-                </table>
-            </div>
-            
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                    <h3>Historique Global des Ventes</h3>
-                    <input type="text" id="search-sales" placeholder="🔍 Filtrer..." style="width:220px; margin:0; padding:8px 12px;"
-                           oninput="filterSales()">
-                </div>
-                <table>
-                    <thead><tr><th>DATE/HEURE</th><th>CAISSIER</th><th>DESTINATION</th><th>PAIEMENT</th><th>MONTANT</th></tr></thead>
-                    <tbody id="all-sales-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ======= CONFIG HUB ======= -->
-        <div id="main-config" class="tab-content admin-only">
-            <div class="module-grid">
-                <div class="card" style="cursor:pointer; text-align:center; transition:0.3s;" onclick="showSection('config-compagnie', 'Profil Compagnie')">
-                    <span class="material-symbols-outlined" style="font-size: 40px; color:var(--primary); margin-bottom:10px;">storefront</span>
-                    <h3>Profil Gare</h3>
-                </div>
-                <div class="card" style="cursor:pointer; text-align:center; transition:0.3s;" onclick="showSection('config-flotte', 'Gestion Flotte')">
-                    <span class="material-symbols-outlined" style="font-size: 40px; color:var(--primary); margin-bottom:10px;">directions_bus</span>
-                    <h3>Flotte Auto</h3>
-                </div>
-                <div class="card" style="cursor:pointer; text-align:center; transition:0.3s;" onclick="showSection('config-destinations', 'Grille Tarifaire')">
-                    <span class="material-symbols-outlined" style="font-size: 40px; color:var(--primary); margin-bottom:10px;">map</span>
-                    <h3>Destinations</h3>
-                </div>
-                <div class="card" style="cursor:pointer; text-align:center; transition:0.3s;" onclick="showSection('config-utilisateurs', 'Sécurité & Accès')">
-                    <span class="material-symbols-outlined" style="font-size: 40px; color:var(--primary); margin-bottom:10px;">manage_accounts</span>
-                    <h3>Utilisateurs</h3>
-                </div>
-            </div>
-        </div>
-
-        <!-- ======= CONFIG COMPAGNIE ======= -->
-        <div id="config-compagnie" class="tab-content admin-only">
-            <button class="btn-secondary" style="margin-bottom:15px; width:auto;" onclick="showSection('main-config', 'Paramètres Système')">
-                <span class="material-symbols-outlined">arrow_back</span> Retour
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="ms">history</span> Historique de la session</div>
+            <button class="btn btn-danger-soft" onclick="closeShift()">
+              <span class="ms" style="font-size:15px">lock</span> Clôturer
             </button>
-            <div class="card" style="max-width: 600px;">
-                <h3 style="margin-bottom:20px;">Informations Gare</h3>
-                <label>Nom de l'Entreprise</label>
-                <input type="text" id="c-name" oninput="updateSaleView()">
-                <label>Slogan</label>
-                <input type="text" id="c-slogan" oninput="updateSaleView()">
-                <label>Contact Téléphonique</label>
-                <input type="text" id="c-tel" oninput="updateSaleView()">
-                <label>Adresse Physique</label>
-                <input type="text" id="c-addr" oninput="updateSaleView()">
-                <button class="btn-action" onclick="updateComp()">
-                    <span class="material-symbols-outlined">save</span> Enregistrer
-                </button>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>Heure</th><th>Destination</th><th>Paiement</th><th>Montant</th></tr></thead>
+                <tbody id="caisse-history-body"></tbody>
+              </table>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VENTE ═══════════ -->
+    <div id="module-vente" class="tab-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Guichet de Vente</h2>
+          <p>Enregistrez une vente et imprimez le billet voyageur</p>
+        </div>
+      </div>
+      <div class="vente-layout">
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="ms">tune</span> Paramètres du billet</div>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Destination</label>
+                <select class="form-control" id="v-dest" onchange="updateSaleView()" style="font-weight:600"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mode de paiement</label>
+                <select class="form-control" id="v-payment" onchange="updateSaleView()">
+                  <option value="ESPECES">💵 Espèces</option>
+                  <option value="WAVE">🌊 Wave</option>
+                  <option value="ORANGE MONEY">🔶 Orange Money</option>
+                  <option value="MTN MONEY">💛 MTN Money</option>
+                </select>
+              </div>
+              <div class="price-display">
+                <div class="price-label" id="v-info">En attente de sélection</div>
+                <div class="price-amount" id="v-price">— F</div>
+                <div class="price-seats" id="v-seats-info"></div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;height:54px;font-size:1rem;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.3px" onclick="confirmSale()">
+                <span class="ms">print</span> VALIDER & IMPRIMER
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- ======= CONFIG FLOTTE ======= -->
-        <div id="config-flotte" class="tab-content admin-only">
-            <button class="btn-secondary" style="margin-bottom:15px; width:auto;" onclick="showSection('main-config', 'Paramètres Système')">
-                <span class="material-symbols-outlined">arrow_back</span> Retour
-            </button>
-            <div class="card">
-                <div style="display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:150px;"><label>Immatriculation / Nom</label><input type="text" id="f-car" placeholder="ex: AA-1234-CI"></div>
-                    <div style="width:130px;"><label>Capacité</label><input type="number" id="f-seats" placeholder="ex: 36" min="1"></div>
-                    <button class="btn-action" style="margin-bottom:15px; width:auto;" onclick="addFleet()">
-                        <span class="material-symbols-outlined">add</span> Ajouter
-                    </button>
-                </div>
-                <table>
-                    <thead><tr><th>VÉHICULE</th><th>CAPACITÉ</th><th style="width:120px;">ACTION</th></tr></thead>
-                    <tbody id="fleet-body"></tbody>
-                </table>
+        <div class="preview-pane">
+          <div class="preview-label">Aperçu Impression</div>
+          <div class="ticket-shell">
+            <div id="ui-live-preview" style="padding:16px;font-family:'Courier New',monospace;min-height:200px">
+              <div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:.85rem">Ticket inactif</div>
             </div>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <!-- ======= CONFIG DESTINATIONS ======= -->
-        <div id="config-destinations" class="tab-content admin-only">
-            <button class="btn-secondary" style="margin-bottom:15px; width:auto;" onclick="showSection('main-config', 'Paramètres Système')">
-                <span class="material-symbols-outlined">arrow_back</span> Retour
-            </button>
-            <div class="card">
-                <div style="display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:150px;"><label>Ville de Destination</label><input type="text" id="d-name" placeholder="ex: ABIDJAN"></div>
-                    <div style="width:160px;"><label>Tarif (FCFA)</label><input type="number" id="d-price" placeholder="ex: 2500" min="0"></div>
-                    <button class="btn-action" style="margin-bottom:15px; width:auto;" onclick="addDest()">
-                        <span class="material-symbols-outlined">add</span> Ajouter
-                    </button>
-                </div>
-                <table>
-                    <thead><tr><th>DESTINATION</th><th>TARIF</th><th style="width:120px;">ACTION</th></tr></thead>
-                    <tbody id="dest-body"></tbody>
-                </table>
+    <!-- ═══════════ PLANNING ═══════════ -->
+    <div id="module-planning" class="tab-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Planning des Départs</h2>
+          <p>Suivi en temps réel des départs programmés</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm admin-only" onclick="purgerPlanning()">
+            <span class="ms" style="font-size:15px">delete_sweep</span> Purger Partis
+          </button>
+          <button class="btn btn-primary admin-only" onclick="showSection('config-planning','Nouveau Départ',document.querySelector('[data-target=module-planning]'))">
+            <span class="ms" style="font-size:15px">add</span> Programmer
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Heure</th><th>Destination</th><th>Véhicule</th>
+                  <th>Remplissage</th><th>Statut</th><th class="admin-only">Action</th>
+                </tr>
+              </thead>
+              <tbody id="live-planning-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ RECETTES ═══════════ -->
+    <div id="module-recettes" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Bilan Financier</h2>
+          <p>Recettes, validation des caisses et historique des ventes</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-success btn-sm" onclick="exportReport('CSV')">
+            <span class="ms" style="font-size:15px">table_view</span> Export CSV
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="exportReport('PDF')">
+            <span class="ms" style="font-size:15px">print</span> Imprimer
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card green">
+          <div class="stat-icon green"><span class="ms">account_balance</span></div>
+          <div class="stat-body">
+            <div class="stat-label">CA Global</div>
+            <div class="stat-val" id="r-total">0 FCFA</div>
+          </div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon blue"><span class="ms">confirmation_number</span></div>
+          <div class="stat-body">
+            <div class="stat-label">Billets émis</div>
+            <div class="stat-val" id="r-count">0</div>
+          </div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-icon gold"><span class="ms">today</span></div>
+          <div class="stat-body">
+            <div class="stat-label">CA Aujourd'hui</div>
+            <div class="stat-val" id="r-today">0 FCFA</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span class="ms">receipt_long</span> Validation des Caisses</div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table id="report-table">
+              <thead><tr><th>Caissier</th><th>Ouverture</th><th>Clôture</th><th>Montant</th><th>Statut</th></tr></thead>
+              <tbody id="shifts-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span class="ms">history</span> Historique des Ventes</div>
+          <input class="search-input" type="text" id="search-sales" placeholder="Rechercher…" oninput="filterSales()">
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date/Heure</th><th>Caissier</th><th>Destination</th><th>Paiement</th><th>Montant</th></tr></thead>
+              <tbody id="all-sales-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONFIG HUB ═══════════ -->
+    <div id="main-config" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Configuration</h2>
+          <p>Gérez les paramètres système de votre plateforme</p>
+        </div>
+      </div>
+      <div class="config-grid">
+        <div class="config-card" onclick="showSection('config-compagnie','Profil Gare')">
+          <div class="cc-icon" style="background:#eff6ff;color:var(--blue)"><span class="ms">storefront</span></div>
+          <h3>Profil Gare</h3>
+        </div>
+        <div class="config-card" onclick="showSection('config-flotte','Flotte Automobile')">
+          <div class="cc-icon" style="background:#eff6ff;color:var(--blue)"><span class="ms">directions_bus</span></div>
+          <h3>Flotte Auto</h3>
+        </div>
+        <div class="config-card" onclick="showSection('config-destinations','Grille Tarifaire')">
+          <div class="cc-icon" style="background:#ecfdf5;color:var(--green)"><span class="ms">map</span></div>
+          <h3>Destinations</h3>
+        </div>
+        <div class="config-card" onclick="showSection('config-utilisateurs','Utilisateurs & Accès')">
+          <div class="cc-icon" style="background:var(--gold-soft);color:#b45309"><span class="ms">manage_accounts</span></div>
+          <h3>Utilisateurs</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONFIG COMPAGNIE ═══════════ -->
+    <div id="config-compagnie" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Profil Gare</h2><p>Informations affichées sur les tickets imprimés</p></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showSection('main-config','Configuration')">
+            <span class="ms" style="font-size:15px">arrow_back</span> Retour
+          </button>
+        </div>
+      </div>
+      <div class="card" style="max-width:600px">
+        <div class="card-header"><div class="card-title"><span class="ms">storefront</span> Identité de la Gare</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nom de l'Entreprise</label><input class="form-control" id="c-name" oninput="updateSaleView()"></div>
+            <div class="form-group"><label class="form-label">Slogan</label><input class="form-control" id="c-slogan" oninput="updateSaleView()"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Téléphone</label><input class="form-control" id="c-tel" oninput="updateSaleView()"></div>
+            <div class="form-group"><label class="form-label">Adresse</label><input class="form-control" id="c-addr" oninput="updateSaleView()"></div>
+          </div>
+          <button class="btn btn-primary" onclick="updateComp()"><span class="ms">save</span> Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONFIG FLOTTE ═══════════ -->
+    <div id="config-flotte" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Flotte Automobile</h2><p>Gérez vos véhicules</p></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showSection('main-config','Configuration')">
+            <span class="ms" style="font-size:15px">arrow_back</span> Retour
+          </button>
+        </div>
+      </div>
+      <div class="card" style="max-width:680px">
+        <div class="card-header"><div class="card-title"><span class="ms">directions_bus</span> Ajouter un véhicule</div></div>
+        <div class="card-body">
+          <div class="form-row" style="align-items:flex-end">
+            <div class="form-group" style="margin:0"><label class="form-label">Immatriculation / Nom</label><input class="form-control" id="f-car" placeholder="ex: AA-1234-CI"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Capacité (places)</label><input class="form-control" type="number" id="f-seats" placeholder="ex: 36" min="1"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="addFleet()"><span class="ms">add</span> Ajouter</button>
+        </div>
+        <div class="card-body" style="padding:0;border-top:1px solid var(--mist)">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Véhicule</th><th>Capacité</th><th style="width:100px">Action</th></tr></thead><tbody id="fleet-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONFIG DESTINATIONS ═══════════ -->
+    <div id="config-destinations" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Grille Tarifaire</h2><p>Gérez les destinations et tarifs</p></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showSection('main-config','Configuration')">
+            <span class="ms" style="font-size:15px">arrow_back</span> Retour
+          </button>
+        </div>
+      </div>
+      <div class="card" style="max-width:680px">
+        <div class="card-header"><div class="card-title"><span class="ms">add_location</span> Ajouter une destination</div></div>
+        <div class="card-body">
+          <div class="form-row" style="align-items:flex-end">
+            <div class="form-group" style="margin:0"><label class="form-label">Ville de destination</label><input class="form-control" id="d-name" placeholder="ex: ABIDJAN"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Tarif (FCFA)</label><input class="form-control" type="number" id="d-price" placeholder="ex: 2500" min="0"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="addDest()"><span class="ms">add</span> Ajouter</button>
+        </div>
+        <div class="card-body" style="padding:0;border-top:1px solid var(--mist)">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Destination</th><th>Tarif</th><th style="width:100px">Action</th></tr></thead><tbody id="dest-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONFIG PLANNING ═══════════ -->
+    <div id="config-planning" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Programmer un Départ</h2><p>Affectez un véhicule à une destination</p></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showSection('module-planning','Planning des Départs',document.querySelector('[data-target=module-planning]'))">
+            <span class="ms" style="font-size:15px">arrow_back</span> Retour au Planning
+          </button>
+        </div>
+      </div>
+      <div class="card" style="max-width:700px">
+        <div class="card-header"><div class="card-title"><span class="ms">departure_board</span> Nouveau départ</div></div>
+        <div class="card-body">
+          <div class="form-row-3">
+            <div class="form-group"><label class="form-label">Destination</label><select class="form-control" id="p-dest-sel"></select></div>
+            <div class="form-group"><label class="form-label">Heure de Départ</label><input class="form-control" type="time" id="p-hour"></div>
+            <div class="form-group"><label class="form-label">Véhicule</label><select class="form-control" id="p-car-sel"></select></div>
+          </div>
+          <button class="btn btn-primary" onclick="addDeparture()"><span class="ms">directions_bus</span> Programmer le départ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONFIG UTILISATEURS ═══════════ -->
+    <div id="config-utilisateurs" class="tab-content admin-only">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Utilisateurs & Accès</h2><p>Gérez les comptes et permissions</p></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showSection('main-config','Configuration')">
+            <span class="ms" style="font-size:15px">arrow_back</span> Retour
+          </button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:20px;align-items:start">
+        <div class="card">
+          <div class="card-header"><div class="card-title" id="form-user-title"><span class="ms">person_add</span> Nouvel Utilisateur</div></div>
+          <div class="card-body">
+            <input type="hidden" id="u-edit-index" value="-1">
+            <div class="form-group"><label class="form-label">Identifiant</label><input class="form-control" id="u-name" placeholder="ex: caissier1"></div>
+            <div class="form-group"><label class="form-label">Mot de passe</label><input class="form-control" type="password" id="u-pass" placeholder="••••••••"></div>
+            <div class="form-group">
+              <label class="form-label">Modules accessibles</label>
+              <div class="check-group">
+                <label class="check-item"><input type="checkbox" class="u-mod" value="main-dashboard"><span>🏠 Accueil</span></label>
+                <label class="check-item"><input type="checkbox" class="u-mod" value="module-caisse"><span>💰 Caisse</span></label>
+                <label class="check-item"><input type="checkbox" class="u-mod" value="module-vente"><span>🎫 Vente</span></label>
+                <label class="check-item"><input type="checkbox" class="u-mod" value="module-planning"><span>📅 Planning</span></label>
+                <label class="check-item admin-check"><input type="checkbox" class="u-mod" value="module-recettes"><span>📊 Recettes</span></label>
+                <label class="check-item admin-check"><input type="checkbox" class="u-mod" value="main-config"><span>⚙️ Config</span></label>
+              </div>
             </div>
-        </div>
-
-        <!-- ======= CONFIG PLANNING ======= -->
-        <div id="config-planning" class="tab-content admin-only">
-            <button class="btn-secondary" style="margin-bottom:15px; width:auto;" onclick="showSection('module-planning', 'Planning des Départs', document.querySelector('[data-target=module-planning]'))">
-                <span class="material-symbols-outlined">arrow_back</span> Retour au Planning
-            </button>
-            <div class="card" style="max-width: 700px;">
-                <h3 style="margin-bottom: 20px;">Programmer un départ</h3>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-                    <div><label>Destination</label><select id="p-dest-sel"></select></div>
-                    <div><label>Heure de Départ</label><input type="time" id="p-hour"></div>
-                    <div><label>Affecter un Car</label><select id="p-car-sel"></select></div>
-                    <div style="display:flex; align-items:flex-end; padding-bottom:15px;">
-                        <button class="btn-action" style="width:100%;" onclick="addDeparture()">
-                            <span class="material-symbols-outlined">directions_bus</span> Programmer
-                        </button>
-                    </div>
-                </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" id="btn-save-user" onclick="saveUser()"><span class="ms">person_add</span> Créer</button>
+              <button class="btn btn-ghost" id="btn-cancel-edit" style="display:none" onclick="resetUserForm()">Annuler</button>
             </div>
+          </div>
         </div>
-
-        <!-- ======= CONFIG UTILISATEURS ======= -->
-        <div id="config-utilisateurs" class="tab-content admin-only">
-            <button class="btn-secondary" style="margin-bottom:15px; width:auto;" onclick="showSection('main-config', 'Paramètres Système')">
-                <span class="material-symbols-outlined">arrow_back</span> Retour
-            </button>
-            <div class="vente-container">
-                <div class="card">
-                    <h3 id="form-user-title" style="margin-bottom:20px;">Nouvel Utilisateur</h3>
-                    <input type="hidden" id="u-edit-index" value="-1">
-                    <label>Identifiant</label>
-                    <input type="text" id="u-name" placeholder="ex: caissier1">
-                    <label>Mot de passe</label>
-                    <input type="password" id="u-pass" placeholder="••••••••">
-                    
-                    <label style="margin-top:5px; display:block;">Accès Modules :</label>
-                    <div style="background:var(--bg); padding:15px; border-radius:10px; margin: 8px 0 15px; display:flex; flex-direction:column; gap:10px;">
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500;">
-                            <input type="checkbox" class="u-mod" value="main-dashboard"> Accueil (Dashboard)
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500;">
-                            <input type="checkbox" class="u-mod" value="module-caisse"> Ma Caisse
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500;">
-                            <input type="checkbox" class="u-mod" value="module-vente"> Vente Billet
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500;">
-                            <input type="checkbox" class="u-mod" value="module-planning"> Planning
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500; border-top:1px solid var(--border); padding-top:10px;">
-                            <input type="checkbox" class="u-mod" value="module-recettes"> 🔒 Recettes (Admin)
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500;">
-                            <input type="checkbox" class="u-mod" value="main-config"> 🔒 Configuration (Admin)
-                        </label>
-                    </div>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn-action" id="btn-save-user" onclick="saveUser()">
-                            <span class="material-symbols-outlined">person_add</span> Créer l'utilisateur
-                        </button>
-                        <button class="btn-secondary" id="btn-cancel-edit" style="display:none;" onclick="resetUserForm()">
-                            Annuler
-                        </button>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3 style="margin-bottom:20px;">Comptes Actifs</h3>
-                    <table>
-                        <thead><tr><th>UTILISATEUR</th><th>MODULES</th><th style="width:130px;">ACTION</th></tr></thead>
-                        <tbody id="users-body"></tbody>
-                    </table>
-                </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><span class="ms">group</span> Comptes Actifs</div></div>
+          <div class="card-body" style="padding:0">
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Utilisateur</th><th>Modules</th><th style="width:100px">Actions</th></tr></thead><tbody id="users-body"></tbody></table>
             </div>
+          </div>
         </div>
+      </div>
+    </div>
 
-    </main>
+  </main>
 </div>
 
 <div id="print-zone"></div>
 
-<!-- ======================== JAVASCRIPT ======================== -->
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
 <script>
-    // ================================================
-    // SYSTEM UI
-    // ================================================
+// ─── DOTS ANIMATION LOGIN ───────────────────
+(function(){
+  const c=document.getElementById('login-dots');
+  for(let i=0;i<30;i++){
+    const s=document.createElement('span');
+    s.style.cssText=`left:${Math.random()*100}%;animation-duration:${4+Math.random()*8}s;animation-delay:${Math.random()*6}s`;
+    c.appendChild(s);
+  }
+})();
 
-    function showToast(msg, type = 'success') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        const icons = { success: 'check_circle', error: 'error', warning: 'warning' };
-        const colors = { success: 'var(--success)', error: 'var(--danger)', warning: 'var(--warning)' };
-        toast.innerHTML = `<span class="material-symbols-outlined" style="color:${colors[type]||colors.success}">${icons[type]||icons.success}</span> ${msg}`;
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.style.animation = 'fadeOut 0.3s ease forwards';
-            setTimeout(() => toast.remove(), 300);
-        }, 3500);
-    }
+// ─── TOAST ─────────────────────────────────
+function showToast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const icons={success:'check_circle',error:'error',warning:'warning'};
+  t.innerHTML=`<span class="ms toast-icon">${icons[type]||icons.success}</span><span class="toast-msg">${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{
+    t.style.animation='toastOut .3s ease forwards';
+    setTimeout(()=>t.remove(),300);
+  },3500);
+}
 
-    // Modal personnalisé (remplace confirm() — incompatible file://)
-    let _modalCallback = null;
-    function showConfirm(title, message, callback, btnLabel = 'Confirmer', btnColor = 'var(--danger)') {
-        document.getElementById('modal-title').innerText = title;
-        document.getElementById('modal-message').innerText = message;
-        const btn = document.getElementById('modal-confirm-btn');
-        btn.innerText = btnLabel;
-        btn.style.background = btnColor;
-        _modalCallback = callback;
-        document.getElementById('modal-overlay').classList.add('show');
-    }
-    function modalClose() {
-        document.getElementById('modal-overlay').classList.remove('show');
-        _modalCallback = null;
-    }
-    document.getElementById('modal-confirm-btn').onclick = function() {
-        modalClose();
-        if(_modalCallback) _modalCallback();
-    };
-    document.getElementById('modal-overlay').addEventListener('click', function(e) {
-        if(e.target === this) modalClose();
+// ─── MODAL ─────────────────────────────────
+let _cb=null;
+function showConfirm(title,msg,cb,btnLabel='Confirmer',iconType='warn'){
+  document.getElementById('modal-title').innerText=title;
+  document.getElementById('modal-message').innerText=msg;
+  document.getElementById('modal-confirm-btn').innerText=btnLabel;
+  const iw=document.getElementById('modal-icon');
+  iw.className='modal-icon-wrap '+iconType;
+  iw.innerHTML=`<span class="ms">${iconType==='danger'?'delete_forever':iconType==='success'?'check_circle':'help'}</span>`;
+  _cb=cb;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function modalClose(){document.getElementById('modal-overlay').classList.remove('show');_cb=null;}
+document.getElementById('modal-confirm-btn').onclick=()=>{modalClose();if(_cb)_cb();};
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)modalClose();});
+
+// ─── CLOCK ─────────────────────────────────
+setInterval(()=>{
+  const el=document.getElementById('clock-display');
+  if(el)el.innerText=new Date().toLocaleTimeString('fr-FR');
+},1000);
+(function setDate(){
+  const el=document.getElementById('dash-date');
+  if(el)el.innerHTML=`<span class="ms" style="font-size:14px">event</span> ${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}`;
+})();
+
+// ─── DB ────────────────────────────────────
+const DB_KEY='Transp_ERP_V3';
+let db=JSON.parse(localStorage.getItem(DB_KEY));
+if(!db||!db.users||!db.shifts){
+  db={
+    comp:{name:"REGIS EXPRESS",slogan:"L'excellence du transport",tel:"01 02 03 04",addr:"Gare Principale"},
+    fleet:[],dests:[],planning:[],sales:[],shifts:[],
+    users:[{username:"admin",password:"123",modules:["main-dashboard","module-caisse","module-vente","module-planning","module-recettes","main-config"]}]
+  };
+  localStorage.setItem(DB_KEY,JSON.stringify(db));
+}
+function save(){localStorage.setItem(DB_KEY,JSON.stringify(db));render();}
+window.addEventListener('storage',e=>{if(e.key===DB_KEY&&e.newValue){db=JSON.parse(e.newValue);if(currentUser)render();}});
+
+// ─── AUTH ───────────────────────────────────
+let currentUser=null;
+
+function handleLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value.trim();
+  const user=db.users.find(x=>x.username===u&&x.password===p);
+  if(user){
+    sessionStorage.setItem('loggedUser',JSON.stringify(user));
+    showToast(`Bienvenue, ${user.username} !`);
+    applyAccessControl(user);
+  } else {
+    const box=document.getElementById('login-box');
+    box.classList.remove('shake');void box.offsetWidth;box.classList.add('shake');
+    showToast("Identifiants incorrects","error");
+  }
+}
+
+function handleLogout(){
+  showConfirm('Déconnexion','Voulez-vous vraiment vous déconnecter de la plateforme ?',()=>{
+    sessionStorage.removeItem('loggedUser');location.reload();
+  },'Déconnecter','danger');
+}
+
+function applyAccessControl(user){
+  currentUser=user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('content-area').style.display='flex';
+
+  document.getElementById('current-user-display').innerText=user.username;
+  document.getElementById('header-user').innerText=user.username;
+  document.getElementById('sb-avatar').innerText=user.username[0].toUpperCase();
+  const isAdmin=user.modules.includes('main-config');
+  document.getElementById('sb-role').innerText=isAdmin?'Super Administrateur':'Utilisateur';
+
+  // Nav visibility
+  let firstAvail=null;
+  document.querySelectorAll('#sidebar-menu .nav-link').forEach(link=>{
+    const t=link.getAttribute('data-target');
+    const ok=user.modules.includes(t);
+    link.style.display=ok?'flex':'none';
+    if(ok&&!firstAvail)firstAvail={target:t,btn:link};
+  });
+
+  // Admin-only labels + buttons in main content
+  const adminOnly=document.querySelectorAll('.admin-only:not(.nav-link)');
+  adminOnly.forEach(el=>{
+    const tag=el.tagName;
+    if(tag==='BUTTON')el.style.display=isAdmin?'inline-flex':'none';
+    else if(tag==='TH'||tag==='TD')el.style.display=isAdmin?'':'none';
+    else el.style.display=isAdmin?'':'none';
+  });
+  // Sidebar admin labels
+  document.querySelectorAll('.sb-section-label.admin-only').forEach(el=>el.style.display=isAdmin?'':'none');
+
+  if(firstAvail)showSection(firstAvail.target,firstAvail.btn.innerText.trim(),firstAvail.btn);
+  render();
+}
+
+// Auto-login
+const _saved=sessionStorage.getItem('loggedUser');
+if(_saved){
+  const u=JSON.parse(_saved);
+  const fresh=db.users.find(x=>x.username===u.username&&x.password===u.password);
+  if(fresh)applyAccessControl(fresh); else sessionStorage.removeItem('loggedUser');
+}
+
+// ─── NAVIGATION ─────────────────────────────
+function showSection(id,title,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el)el.classList.add('active');
+  if(title)document.getElementById('page-title-display').innerText=title.replace(/[^\w\sàâäéèêëîïôöùûüÿçÀÂÄÉÈÊËÎÏÔÖÙÛÜŸÇ']/g,'').trim();
+  if(btn&&btn.classList&&btn.classList.contains('nav-link')){
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  if(id==='module-vente')updateSaleView();
+}
+
+// ─── CAISSE ─────────────────────────────────
+function getCurrentShift(){
+  if(!currentUser)return null;
+  return db.shifts.find(s=>s.cashier===currentUser.username&&s.status==='OPEN');
+}
+function openShift(){
+  if(getCurrentShift())return showToast("Une caisse est déjà ouverte","warning");
+  db.shifts.push({id:Date.now(),cashier:currentUser.username,startTime:new Date().toISOString(),endTime:null,status:'OPEN',total:0});
+  save();showToast("Caisse ouverte !");
+}
+function closeShift(){
+  showConfirm('Clôturer la Caisse','Êtes-vous sûr ? Vous ne pourrez plus enregistrer de ventes.',()=>{
+    const s=getCurrentShift();if(!s)return;
+    s.status='CLOSED';s.endTime=new Date().toISOString();
+    save();showToast("Caisse clôturée. En attente de validation.","warning");
+  },'Clôturer','warn');
+}
+function validateShift(id){
+  showConfirm('Valider la Caisse','Valider définitivement ce rapport ? Action irréversible.',()=>{
+    const s=db.shifts.find(x=>x.id===id);
+    if(s){s.status='VALIDATED';save();showToast("Caisse validée !");}
+  },'Valider','success');
+}
+
+// ─── TICKET ─────────────────────────────────
+function buildTicket(type,dep,dest,seat,payMethod){
+  const qr=`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=TP-${dep.id}-S${seat}`;
+  const d=new Date();
+  const dateStr=d.toLocaleString('fr-FR');
+  const mono="'Courier New',Courier,monospace";
+  const isClient=type==='CLIENT';
+
+  let h=`<div style="font-family:${mono};color:#000;font-size:11px;padding:12px 10px;line-height:1.4">
+    <div style="text-align:center;border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:8px;font-weight:900;font-size:9px;letter-spacing:2px">
+      ${isClient?'⬡ TICKET VOYAGEUR ⬡':'⬡ SOUCHE GARE ⬡'}
+    </div>
+    <div style="text-align:center;margin-bottom:6px">
+      <div style="font-size:16px;font-weight:900;letter-spacing:1px">${db.comp.name}</div>
+      <div style="font-size:9px;color:#555">${db.comp.slogan||''}</div>
+      <div style="font-size:9px">${db.comp.tel} · ${db.comp.addr}</div>
+    </div>
+    <div style="border-top:1px dashed #999;margin:6px 0"></div>`;
+
+  if(isClient){
+    h+=`<div style="font-size:9px;margin-bottom:4px">DATE: ${dateStr}</div>
+    <div style="font-size:9px;margin-bottom:6px">AGENT: ${currentUser.username.toUpperCase()}</div>
+    <div style="border-top:1px dashed #999;margin:6px 0"></div>
+    <div style="text-align:center;margin:6px 0">
+      <div style="font-size:9px;color:#666;letter-spacing:1px">DESTINATION</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:1px">${dep.dest.toUpperCase()}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #000;border-bottom:1px solid #000;font-size:10px;font-weight:700">
+      <span>⏰ ${dep.hour}</span><span>🚌 ${dep.car}</span>
+    </div>
+    <div style="text-align:center;margin:8px 0">
+      <div style="font-size:9px;color:#666">N° SIÈGE</div>
+      <div style="font-size:36px;font-weight:900;border:2px solid #000;border-radius:6px;padding:2px 10px;display:inline-block">${seat}</div>
+    </div>
+    <img src="${qr}" style="display:block;margin:4px auto;width:70px">
+    <div style="border-top:1px dashed #999;margin:6px 0"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:9px">${payMethod}</div>
+      <div style="font-size:14px;font-weight:900">${dest.price.toLocaleString()} FCFA</div>
+    </div>
+    <div style="text-align:center;font-size:9px;color:#888;margin-top:6px">✈ Bon voyage !</div>`;
+  } else {
+    h+=`<div style="font-size:10px;line-height:1.8">
+      <div>DEST: <b>${dep.dest.toUpperCase()}</b></div>
+      <div>SIÈGE: <b style="font-size:14px">${seat}</b></div>
+      <div>CAR: ${dep.car} · ${dep.hour}</div>
+      <div>MONTANT: <b>${dest.price.toLocaleString()} FCFA</b></div>
+      <div>MODE: ${payMethod}</div>
+      <div>AGENT: ${currentUser.username.toUpperCase()}</div>
+    </div>`;
+  }
+  return h+'</div>';
+}
+
+// ─── VENTE ──────────────────────────────────
+function updateSaleView(){
+  const vd=document.getElementById('v-dest');if(!vd)return;
+  const dName=vd.value;
+  const dep=db.planning.find(p=>p.dest===dName&&p.status==='ATTENTE'&&p.sold<p.seats);
+  const dest=db.dests.find(d=>d.name===dName);
+  const shift=getCurrentShift();
+  const isAdmin=currentUser&&currentUser.modules.includes('main-config');
+  const preview=document.getElementById('ui-live-preview');
+
+  if(!shift&&!isAdmin){
+    document.getElementById('v-info').innerText='⚠ CAISSE FERMÉE';
+    document.getElementById('v-price').innerText='— F';
+    document.getElementById('v-seats-info').innerText='Ouvrez votre caisse pour vendre';
+    preview.innerHTML='<div style="text-align:center;padding:50px 0;color:#94a3b8"><span class="ms" style="font-size:40px;display:block;margin-bottom:8px">lock</span>Caisse fermée</div>';
+    return;
+  }
+  if(dep&&dest){
+    document.getElementById('v-info').innerText=`Départ: ${dep.hour} · ${dep.car}`;
+    document.getElementById('v-price').innerText=dest.price.toLocaleString()+' FCFA';
+    document.getElementById('v-seats-info').innerText=(dep.seats-dep.sold)+' place(s) disponible(s)';
+    window.currentDepId=dep.id;
+    const payM=document.getElementById('v-payment').value||'ESPECES';
+    preview.innerHTML=
+      buildTicket('CLIENT',dep,dest,dep.sold+1,payM)+
+      '<div style="margin:6px 0;border-top:2px dashed #999;text-align:center;font-size:9px;font-family:monospace">✂ COUPER ✂</div>'+
+      buildTicket('GARE',dep,dest,dep.sold+1,payM);
+  } else {
+    const msg=dName?'Aucun car disponible pour cette destination':'Sélectionnez une destination';
+    document.getElementById('v-info').innerText=msg;
+    document.getElementById('v-price').innerText='— F';
+    document.getElementById('v-seats-info').innerText='';
+    preview.innerHTML=`<div style="text-align:center;padding:50px 0;color:#94a3b8;font-size:.85rem">${msg}</div>`;
+  }
+}
+
+function confirmSale(){
+  const shift=getCurrentShift();
+  const isAdmin=currentUser&&currentUser.modules.includes('main-config');
+  if(!shift&&!isAdmin)return showToast("Veuillez ouvrir votre caisse !","error");
+  const dep=db.planning.find(p=>p.id===window.currentDepId);
+  if(!dep)return showToast("Aucun départ sélectionné","error");
+  if(dep.status==='PARTI')return showToast("Ce car est déjà parti !","error");
+  if(dep.sold>=dep.seats)return showToast("Car complet !","error");
+  const dest=db.dests.find(d=>d.name===dep.dest);
+  const seat=dep.sold+1;
+  const payM=document.getElementById('v-payment').value;
+  document.getElementById('print-zone').innerHTML=
+    buildTicket('CLIENT',dep,dest,seat,payM)+
+    '<div style="margin:20px 0;border-top:2px dashed #000"></div>'+
+    buildTicket('GARE',dep,dest,seat,payM);
+  dep.sold++;
+  db.sales.push({id:Date.now(),depId:dep.id,dest:dep.dest,price:dest.price,payment:payM,cashier:currentUser.username,time:new Date().toISOString()});
+  if(shift)shift.total+=dest.price;
+  save();showToast("Billet validé — Impression en cours...");
+  setTimeout(()=>window.print(),400);
+}
+
+// ─── CONFIG CRUD ────────────────────────────
+function updateComp(){
+  db.comp.name=document.getElementById('c-name').value.trim()||"MA COMPAGNIE";
+  db.comp.slogan=document.getElementById('c-slogan').value.trim();
+  db.comp.tel=document.getElementById('c-tel').value.trim();
+  db.comp.addr=document.getElementById('c-addr').value.trim();
+  save();showToast("Profil Gare enregistré");
+}
+
+function addFleet(){
+  const car=document.getElementById('f-car').value.trim();
+  const seats=parseInt(document.getElementById('f-seats').value);
+  if(!car||!seats||seats<1)return showToast("Remplissez tous les champs","error");
+  if(db.fleet.find(f=>f.car.toLowerCase()===car.toLowerCase()))return showToast("Véhicule déjà enregistré","warning");
+  db.fleet.push({car,seats});save();
+  document.getElementById('f-car').value='';document.getElementById('f-seats').value='';
+  showToast("Véhicule ajouté");
+}
+
+function addDest(){
+  const name=document.getElementById('d-name').value.trim().toUpperCase();
+  const price=parseInt(document.getElementById('d-price').value);
+  if(!name||!price||price<0)return showToast("Remplissez tous les champs","error");
+  if(db.dests.find(d=>d.name===name))return showToast("Destination déjà enregistrée","warning");
+  db.dests.push({name,price});save();
+  document.getElementById('d-name').value='';document.getElementById('d-price').value='';
+  showToast("Destination ajoutée");
+}
+
+function addDeparture(){
+  const cIdx=document.getElementById('p-car-sel').value;
+  const hour=document.getElementById('p-hour').value;
+  const dest=document.getElementById('p-dest-sel').value;
+  if((!cIdx&&cIdx!==0)||!hour||!dest)return showToast("Remplissez tous les champs","error");
+  db.planning.push({id:Date.now(),dest,hour,car:db.fleet[cIdx].car,seats:db.fleet[cIdx].seats,sold:0,status:"ATTENTE"});
+  save();showToast("Départ programmé !");
+  showSection('module-planning','Planning des Départs',document.querySelector('[data-target=module-planning]'));
+}
+
+function validerDepart(id){
+  const dep=db.planning.find(p=>p.id===id);if(!dep)return;
+  showConfirm('Confirmer le Départ',`Confirmer le départ du car ${dep.car} vers ${dep.dest} à ${dep.hour} ?`,()=>{
+    dep.status="PARTI";save();showToast("Départ confirmé !");
+  },'Confirmer','warn');
+}
+
+function supprimerDepart(id){
+  const dep=db.planning.find(p=>p.id===id);if(!dep)return;
+  if(dep.sold>0)return showToast("Impossible : des billets ont déjà été vendus","error");
+  showConfirm('Supprimer le Départ',`Supprimer le départ ${dep.dest} à ${dep.hour} ?`,()=>{
+    db.planning=db.planning.filter(p=>p.id!==id);save();showToast("Départ supprimé");
+  },'Supprimer','danger');
+}
+
+function purgerPlanning(){
+  const n=db.planning.filter(p=>p.status==='PARTI').length;
+  if(n===0)return showToast("Aucun départ à purger","warning");
+  showConfirm('Purger le Planning',`Retirer les ${n} départ(s) "PARTI" de la liste ? Les ventes restent conservées.`,()=>{
+    db.planning=db.planning.filter(p=>p.status!=='PARTI');save();showToast(`${n} départ(s) purgé(s)`);
+  },'Purger','danger');
+}
+
+// ─── UTILISATEURS ───────────────────────────
+function saveUser(){
+  const username=document.getElementById('u-name').value.trim();
+  const password=document.getElementById('u-pass').value.trim();
+  const editIdx=parseInt(document.getElementById('u-edit-index').value);
+  if(!username||!password)return showToast("Identifiant et mot de passe requis","error");
+  const modules=[];
+  document.querySelectorAll('.u-mod:checked').forEach(cb=>modules.push(cb.value));
+  if(modules.length===0)return showToast("Assignez au moins un module","warning");
+  if(editIdx>=0){
+    db.users[editIdx]={username,password,modules};showToast("Utilisateur mis à jour");
+  } else {
+    if(db.users.find(u=>u.username===username))return showToast("Cet identifiant existe déjà","error");
+    db.users.push({username,password,modules});showToast("Utilisateur créé");
+  }
+  resetUserForm();save();
+}
+function editUser(i){
+  const u=db.users[i];
+  document.getElementById('u-edit-index').value=i;
+  document.getElementById('u-name').value=u.username;
+  document.getElementById('u-pass').value=u.password;
+  document.querySelectorAll('.u-mod').forEach(cb=>cb.checked=u.modules.includes(cb.value));
+  document.getElementById('form-user-title').innerHTML='<span class="ms">edit</span> Modifier l\'Utilisateur';
+  document.getElementById('btn-save-user').innerHTML='<span class="ms">save</span> Mettre à jour';
+  document.getElementById('btn-cancel-edit').style.display='inline-flex';
+}
+function resetUserForm(){
+  document.getElementById('u-edit-index').value='-1';
+  document.getElementById('u-name').value='';
+  document.getElementById('u-pass').value='';
+  document.querySelectorAll('.u-mod').forEach(cb=>cb.checked=false);
+  document.getElementById('form-user-title').innerHTML='<span class="ms">person_add</span> Nouvel Utilisateur';
+  document.getElementById('btn-save-user').innerHTML='<span class="ms">person_add</span> Créer';
+  document.getElementById('btn-cancel-edit').style.display='none';
+}
+function deleteUser(i){
+  if(db.users[i].username==='admin')return showToast("Impossible de supprimer le Super-Admin","error");
+  showConfirm('Supprimer le Compte',`Supprimer définitivement "${db.users[i].username}" ?`,()=>{
+    db.users.splice(i,1);save();showToast("Compte supprimé");
+  },'Supprimer','danger');
+}
+
+// ─── EXPORTS ────────────────────────────────
+function exportReport(fmt){
+  if(fmt==='PDF'){
+    document.body.classList.add('print-full-page');
+    document.getElementById('print-zone').innerHTML='<h2 style="font-family:sans-serif;margin-bottom:16px">Rapport des Caisses</h2>'+document.getElementById('report-table').outerHTML;
+    window.print();
+    document.body.classList.remove('print-full-page');
+    document.getElementById('print-zone').innerHTML='';
+  } else {
+    let csv="CAISSIER,OUVERTURE,CLOTURE,MONTANT,STATUT\n";
+    db.shifts.forEach(s=>{
+      const out=s.endTime?new Date(s.endTime).toLocaleString('fr-FR'):'En cours';
+      csv+=`"${s.cashier}","${new Date(s.startTime).toLocaleString('fr-FR')}","${out}","${s.total}","${s.status}"\n`;
     });
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`rapport_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+}
 
-    // Horloge temps réel
-    setInterval(() => {
-        const el = document.getElementById('clock-display');
-        if(el) el.innerText = new Date().toLocaleTimeString('fr-FR');
-    }, 1000);
+function filterSales(){
+  const q=(document.getElementById('search-sales').value||'').toLowerCase();
+  document.querySelectorAll('#all-sales-body tr').forEach(r=>{r.style.display=r.innerText.toLowerCase().includes(q)?'':'none';});
+}
 
-    // ================================================
-    // BASE DE DONNÉES (localStorage)
-    // ================================================
-    const DB_KEY = 'Transp_ERP_V22';
-    let db = JSON.parse(localStorage.getItem(DB_KEY));
+// ─── RENDER ─────────────────────────────────
+function render(){
+  if(!currentUser)return;
+  const isAdmin=currentUser.modules.includes('main-config');
+  const today=new Date().toDateString();
 
-    if (!db || !db.users || !db.shifts) {
-        db = {
-            comp: { name: "REGIS EXPRESS", slogan: "L'excellence du transport", tel: "01 02 03 04", addr: "Gare Principale" },
-            fleet: [], dests: [], planning: [],
-            sales: [], shifts: [],
-            users: [{
-                username: "admin",
-                password: "123",
-                modules: ["main-dashboard", "module-caisse", "module-vente", "module-planning", "module-recettes", "main-config"]
-            }]
-        };
-        localStorage.setItem(DB_KEY, JSON.stringify(db));
-    }
+  // Caisse
+  const shift=getCurrentShift();
+  if(shift){
+    document.getElementById('caisse-closed-view').style.display='none';
+    document.getElementById('caisse-open-view').style.display='block';
+    document.getElementById('caisse-total').innerText=shift.total.toLocaleString()+' FCFA';
+    document.getElementById('caisse-open-since').innerText='Depuis '+new Date(shift.startTime).toLocaleTimeString('fr-FR');
+    const mySales=db.sales.filter(s=>s.cashier===currentUser.username&&new Date(s.time)>=new Date(shift.startTime));
+    document.getElementById('caisse-count').innerText=mySales.length;
+    document.getElementById('caisse-history-body').innerHTML=mySales.length
+      ? mySales.slice().reverse().map(s=>`<tr>
+          <td class="td-muted">${new Date(s.time).toLocaleTimeString('fr-FR')}</td>
+          <td><b>${s.dest}</b></td>
+          <td><span class="badge badge-blue">${s.payment}</span></td>
+          <td><b>${s.price.toLocaleString()} F</b></td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" class="empty-state"><span class="ms">inbox</span><p>Aucune vente cette session</p></td></tr>';
+  } else {
+    document.getElementById('caisse-closed-view').style.display='block';
+    document.getElementById('caisse-open-view').style.display='none';
+  }
 
-    function save() {
-        localStorage.setItem(DB_KEY, JSON.stringify(db));
-        render();
-    }
+  // Config fields (safe update)
+  const fid=document.activeElement?document.activeElement.id:'';
+  if(fid!=='c-name')document.getElementById('c-name').value=db.comp.name||'';
+  if(fid!=='c-slogan')document.getElementById('c-slogan').value=db.comp.slogan||'';
+  if(fid!=='c-tel')document.getElementById('c-tel').value=db.comp.tel||'';
+  if(fid!=='c-addr')document.getElementById('c-addr').value=db.comp.addr||'';
 
-    // Synchronisation multi-onglets
-    window.addEventListener('storage', (e) => {
-        if (e.key === DB_KEY && e.newValue) {
-            db = JSON.parse(e.newValue);
-            if (currentUser) render();
-        }
-    });
+  // Selects
+  const dOpt=db.dests.map(d=>`<option value="${d.name}">${d.name} — ${d.price.toLocaleString()} F</option>`).join('');
+  document.getElementById('p-dest-sel').innerHTML=dOpt||'<option>— Aucune destination —</option>';
+  document.getElementById('v-dest').innerHTML=dOpt||'<option>— Aucune destination —</option>';
+  document.getElementById('p-car-sel').innerHTML=db.fleet.map((f,i)=>`<option value="${i}">${f.car} (${f.seats} pl)</option>`).join('')||'<option>— Aucun véhicule —</option>';
 
-    // ================================================
-    // AUTHENTIFICATION
-    // ================================================
-    let currentUser = null;
+  // Flotte
+  document.getElementById('fleet-body').innerHTML=db.fleet.length
+    ? db.fleet.map((f,i)=>`<tr>
+        <td><b>${f.car}</b></td>
+        <td><span class="badge badge-gray">${f.seats} places</span></td>
+        <td><button class="btn btn-danger-soft btn-sm" onclick="showConfirm('Retirer','Retirer ${f.car} de la flotte ?',()=>{db.fleet.splice(${i},1);save();})">Retirer</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="3"><div class="empty-state"><span class="ms">directions_bus</span><p>Aucun véhicule enregistré</p></div></td></tr>';
 
-    function handleLogin() {
-        const u = document.getElementById('login-user').value.trim();
-        const p = document.getElementById('login-pass').value.trim();
-        const user = db.users.find(x => x.username === u && x.password === p);
+  // Destinations
+  document.getElementById('dest-body').innerHTML=db.dests.length
+    ? db.dests.map((d,i)=>`<tr>
+        <td><b>${d.name}</b></td>
+        <td><span class="badge badge-green">${d.price.toLocaleString()} FCFA</span></td>
+        <td><button class="btn btn-danger-soft btn-sm" onclick="showConfirm('Supprimer','Supprimer ${d.name} ?',()=>{db.dests.splice(${i},1);save();})">Retirer</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="3"><div class="empty-state"><span class="ms">map</span><p>Aucune destination</p></div></td></tr>';
 
-        if (user) {
-            sessionStorage.setItem('loggedUser', JSON.stringify(user));
-            showToast(`Bienvenue, ${user.username} !`);
-            applyAccessControl(user);
-        } else {
-            const box = document.getElementById('login-box');
-            box.classList.remove('error-shake');
-            void box.offsetWidth;
-            box.classList.add('error-shake');
-            showToast("Identifiants incorrects", "error");
-        }
-    }
-
-    function handleLogout() {
-        showConfirm('Déconnexion', 'Voulez-vous vraiment vous déconnecter ?', () => {
-            sessionStorage.removeItem('loggedUser');
-            location.reload();
-        }, 'Déconnecter', 'var(--danger)');
-    }
-
-    function applyAccessControl(user) {
-        currentUser = user;
-
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-sidebar').style.display = 'flex';
-        document.getElementById('content-area').style.display = 'flex';
-        document.getElementById('current-user-display').innerText = user.username;
-        document.getElementById('header-user').innerText = user.username;
-
-        const isAdmin = user.modules.includes('main-config');
-
-        // Contrôle visibilité des liens de navigation
-        const navLinks = document.querySelectorAll('#sidebar-menu .nav-link');
-        let firstAvail = null;
-        navLinks.forEach(link => {
-            const target = link.getAttribute('data-target');
-            const hasAccess = user.modules.includes(target);
-            link.style.display = hasAccess ? 'flex' : 'none';
-            if (hasAccess && !firstAvail) firstAvail = { target, btn: link };
-        });
-
-        // Contrôle éléments admin-only (boutons en page, colonnes, divs)
-        document.querySelectorAll('.admin-only:not(.nav-link)').forEach(el => {
-            if (el.tagName === 'BUTTON') {
-                el.style.display = isAdmin ? 'inline-flex' : 'none';
-            } else if (el.tagName === 'TH' || el.tagName === 'TD') {
-                el.style.display = isAdmin ? '' : 'none';
-            } else {
-                el.style.display = isAdmin ? '' : 'none';
-            }
-        });
-
-        if (firstAvail) {
-            showSection(firstAvail.target, firstAvail.btn.innerText.trim(), firstAvail.btn);
-        }
-
-        render();
-    }
-
-    // Auto-login si session active
-    const savedUser = sessionStorage.getItem('loggedUser');
-    if (savedUser) {
-        const u = JSON.parse(savedUser);
-        // Re-vérifier que le compte existe toujours avec le bon mot de passe
-        const fresh = db.users.find(x => x.username === u.username && x.password === u.password);
-        if (fresh) applyAccessControl(fresh);
-        else sessionStorage.removeItem('loggedUser');
-    }
-
-    // ================================================
-    // NAVIGATION
-    // ================================================
-    function showSection(id, title, btn) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        const el = document.getElementById(id);
-        if (el) el.classList.add('active');
-        if (title) document.getElementById('page-title-display').innerText = title.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').trim();
-        if (btn && btn.classList && btn.classList.contains('nav-link')) {
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            btn.classList.add('active');
-        }
-        // Mettre à jour la vue vente si on y revient
-        if (id === 'module-vente') updateSaleView();
-    }
-
-    // ================================================
-    // GESTION CAISSE (SHIFT)
-    // ================================================
-    function getCurrentShift() {
-        if (!currentUser) return null;
-        return db.shifts.find(s => s.cashier === currentUser.username && s.status === 'OPEN');
-    }
-
-    function openShift() {
-        if (getCurrentShift()) return showToast("Une caisse est déjà ouverte", "warning");
-        db.shifts.push({
-            id: Date.now(), cashier: currentUser.username,
-            startTime: new Date().toISOString(), endTime: null,
-            status: 'OPEN', total: 0
-        });
-        save();
-        showToast("Caisse ouverte avec succès !");
-    }
-
-    function closeShift() {
-        showConfirm(
-            'Clôturer la Caisse',
-            'Êtes-vous sûr ? Vous ne pourrez plus vendre de billets jusqu\'à la prochaine ouverture.',
-            () => {
-                const shift = getCurrentShift();
-                if (!shift) return;
-                shift.status = 'CLOSED';
-                shift.endTime = new Date().toISOString();
-                save();
-                showToast("Caisse clôturée. En attente de validation Admin.", "warning");
-            },
-            'Clôturer', 'var(--warning)'
-        );
-    }
-
-    function validateShift(id) {
-        showConfirm(
-            'Valider la Caisse',
-            'Valider définitivement ce rapport de caisse ? Cette action est irréversible.',
-            () => {
-                const shift = db.shifts.find(s => s.id === id);
-                if (shift) { shift.status = 'VALIDATED'; save(); showToast("Caisse validée !"); }
-            },
-            'Valider', 'var(--success)'
-        );
-    }
-
-    // ================================================
-    // TICKET
-    // ================================================
-    function buildTicket(type, dep, dest, seat, payMethod) {
-        const qr = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=R-${dep.id}-${seat}`;
-        const dateStr = new Date().toLocaleString('fr-FR');
-        const mono = "'Courier New', Courier, monospace";
-
-        let html = `<div style="text-align:center; color:black; font-family:${mono}; line-height:1.3; padding: 12px 10px; font-size:12px;">
-            <div style="font-weight:900; font-size:9px; letter-spacing:2px; border-bottom:1px solid #000; padding-bottom:5px; margin-bottom:8px;">
-                *** ${type === 'CLIENT' ? 'TICKET VOYAGEUR' : 'SOUCHE GARE'} ***
+  // Planning
+  document.getElementById('live-planning-body').innerHTML=db.planning.length
+    ? db.planning.slice().reverse().map(p=>{
+        const pct=Math.min(Math.round(p.sold/p.seats*100),100);
+        const fillColor=pct>=100?'var(--red)':pct>=75?'var(--amber)':'var(--green)';
+        let statBadge=p.status==='PARTI'
+          ? '<span class="badge badge-gray">Parti</span>'
+          : `<button class="btn btn-confirm btn-sm" onclick="validerDepart(${p.id})"><span class="ms" style="font-size:13px">departure_board</span> Départ</button>`;
+        const adminTd=isAdmin&&p.status==='ATTENTE'&&p.sold===0
+          ? `<button class="btn btn-danger-soft btn-sm btn-icon" onclick="supprimerDepart(${p.id})"><span class="ms" style="font-size:15px">delete</span></button>`
+          : '';
+        return `<tr style="${p.status==='PARTI'?'opacity:.5':''}">
+          <td><b style="color:var(--blue)">${p.hour}</b></td>
+          <td><b>${p.dest}</b></td>
+          <td><span class="badge badge-blue">${p.car}</span></td>
+          <td>
+            <div class="fill-bar">
+              <span class="fill-text" style="color:${fillColor}">${p.sold}/${p.seats}</span>
+              <div class="progress" style="flex:1">
+                <div class="progress-bar" style="width:${pct}%;background:${fillColor}"></div>
+              </div>
             </div>
-            <h2 style="font-size:20px; margin:0 0 2px; font-weight:900;">${db.comp.name}</h2>
-            <p style="font-size:10px; color:#555;">${db.comp.slogan || ''}</p>
-            <p style="font-size:10px;">${db.comp.tel} | ${db.comp.addr}</p>
-            <div style="border-top:1px dashed #000; margin:8px 0;"></div>`;
+          </td>
+          <td>${statBadge}</td>
+          <td class="admin-only" style="${isAdmin?'':'display:none'}">${adminTd}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6"><div class="empty-state"><span class="ms">departure_board</span><p>Aucun départ programmé</p></div></td></tr>';
 
-        if (type === 'CLIENT') {
-            html += `
-                <div style="text-align:left; font-size:10px;">DATE: ${dateStr} | CAISSIER: ${currentUser.username.toUpperCase()}</div>
-                <div style="border-top:1px dashed #000; margin:8px 0;"></div>
-                <div style="margin:8px 0;">
-                    <span style="font-size:11px; color:#555;">DESTINATION</span><br>
-                    <strong style="font-size:24px;">${dep.dest.toUpperCase()}</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:11px; margin:8px 0; padding:5px; border-top:1px solid #000; border-bottom:1px solid #000;">
-                    <span>HEURE: <b>${dep.hour}</b></span><span>CAR: <b>${dep.car}</b></span>
-                </div>
-                <div style="border:2px solid #000; padding:8px; font-size:38px; font-weight:900; margin:10px 0; border-radius:6px;">N° ${seat}</div>
-                <img src="${qr}" style="width:75px; margin:5px 0;"><br>
-                <div style="text-align:right; font-size:16px; font-weight:bold; margin-top:8px;">TOTAL: ${dest.price.toLocaleString()} FCFA</div>
-                <div style="text-align:right; font-size:10px; color:#555;">Paiement: ${payMethod}</div>
-                <div style="font-size:10px; margin-top:10px; color:#555;">✈ Bon voyage !</div>`;
-        } else {
-            html += `
-                <div style="text-align:left; font-size:11px; line-height:1.8;">
-                    DESTINATION: <b>${dep.dest.toUpperCase()}</b><br>
-                    SIÈGE N°: <b style="font-size:16px;">${seat}</b><br>
-                    CAR / HEURE: ${dep.car} – ${dep.hour}<br>
-                    MONTANT: <b>${dest.price.toLocaleString()} FCFA</b><br>
-                    PAIEMENT: ${payMethod}<br>
-                    CAISSE: ${currentUser.username.toUpperCase()}
-                </div>`;
-        }
-        return html + `</div>`;
-    }
+  // Recettes
+  const totalRev=db.sales.reduce((a,b)=>a+b.price,0);
+  const todayRev=db.sales.filter(s=>new Date(s.time).toDateString()===today).reduce((a,b)=>a+b.price,0);
+  document.getElementById('r-total').innerText=totalRev.toLocaleString()+' FCFA';
+  document.getElementById('r-count').innerText=db.sales.length;
+  document.getElementById('r-today').innerText=todayRev.toLocaleString()+' FCFA';
 
-    // ================================================
-    // VENTE
-    // ================================================
-    function updateSaleView() {
-        const vDestEl = document.getElementById('v-dest');
-        if (!vDestEl) return;
-        const dName = vDestEl.value;
-        const dep = db.planning.find(p => p.dest === dName && p.status === 'ATTENTE' && p.sold < p.seats);
-        const dest = db.dests.find(d => d.name === dName);
-        const previewDiv = document.getElementById('ui-live-preview');
+  document.getElementById('shifts-body').innerHTML=db.shifts.length
+    ? db.shifts.slice().reverse().map(s=>{
+        const out=s.endTime?new Date(s.endTime).toLocaleString('fr-FR'):'<span class="badge badge-green">En cours</span>';
+        const stBadge=s.status==='VALIDATED'?'<span class="badge badge-green">Validé</span>':s.status==='CLOSED'?'<span class="badge badge-amber">À valider</span>':'<span class="badge badge-blue">Ouvert</span>';
+        const action=s.status==='CLOSED'?`<button class="btn btn-confirm btn-sm" onclick="validateShift(${s.id})"><span class="ms" style="font-size:13px">verified</span> Valider</button>`:s.status==='VALIDATED'?`<span class="ms" style="color:var(--green)">verified</span>`:'';
+        return `<tr>
+          <td><b>${s.cashier}</b></td>
+          <td class="td-muted">${new Date(s.startTime).toLocaleString('fr-FR')}</td>
+          <td class="td-muted">${out}</td>
+          <td><b>${s.total.toLocaleString()} FCFA</b></td>
+          <td>${stBadge} ${action}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5"><div class="empty-state"><span class="ms">receipt_long</span><p>Aucun rapport de caisse</p></div></td></tr>';
 
-        const shift = getCurrentShift();
-        const isAdmin = currentUser && currentUser.modules.includes('main-config');
+  document.getElementById('all-sales-body').innerHTML=db.sales.length
+    ? db.sales.slice().reverse().map(s=>`<tr>
+        <td class="td-muted">${new Date(s.time).toLocaleString('fr-FR')}</td>
+        <td>${s.cashier}</td>
+        <td><b>${s.dest}</b></td>
+        <td><span class="badge badge-blue">${s.payment}</span></td>
+        <td><b>${s.price.toLocaleString()} FCFA</b></td>
+      </tr>`).join('')
+    : '<tr><td colspan="5"><div class="empty-state"><span class="ms">history</span><p>Aucune vente enregistrée</p></div></td></tr>';
 
-        if (!shift && !isAdmin) {
-            document.getElementById('v-info').innerText = "⚠ CAISSE FERMÉE";
-            document.getElementById('v-price').innerText = "—";
-            document.getElementById('v-seats-info').innerText = "Veuillez ouvrir votre caisse d'abord";
-            previewDiv.innerHTML = '<div style="text-align:center; padding:60px 0;"><span class="material-symbols-outlined" style="font-size:48px; color:#94a3b8;">lock</span><br><p style="color:#94a3b8; margin-top:10px;">Caisse fermée</p></div>';
-            return;
-        }
+  // Utilisateurs
+  document.getElementById('users-body').innerHTML=db.users.map((u,i)=>`<tr>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#f97316);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:.8rem;flex-shrink:0">${u.username[0].toUpperCase()}</div>
+        <div><b>${u.username}</b>${u.modules.includes('main-config')?'&nbsp;<span class="badge badge-gold">Admin</span>':''}</div>
+      </div>
+    </td>
+    <td><span class="badge badge-gray">${u.modules.length} module(s)</span></td>
+    <td>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="editUser(${i})" title="Modifier"><span class="ms" style="font-size:16px">edit</span></button>
+        ${u.username!=='admin'?`<button class="btn btn-danger-soft btn-sm btn-icon" onclick="deleteUser(${i})" title="Supprimer"><span class="ms" style="font-size:16px">delete</span></button>`:''}
+      </div>
+    </td>
+  </tr>`).join('');
 
-        if (dep && dest) {
-            document.getElementById('v-info').innerHTML = `Prochain départ: <strong>${dep.hour}</strong> — Car: ${dep.car}`;
-            document.getElementById('v-price').innerText = dest.price.toLocaleString() + " FCFA";
-            const dispo = dep.seats - dep.sold;
-            document.getElementById('v-seats-info').innerText = dispo + " place(s) disponible(s)";
-            window.currentDepId = dep.id;
+  // Dashboard
+  const opens=db.shifts.filter(s=>s.status==='OPEN').length;
+  const attente=db.planning.filter(p=>p.status==='ATTENTE').length;
+  let statsHTML='';
+  if(currentUser.modules.includes('module-caisse')||isAdmin)
+    statsHTML+=`<div class="stat-card blue"><div class="stat-icon blue"><span class="ms">point_of_sale</span></div><div class="stat-body"><div class="stat-label">Caisses Ouvertes</div><div class="stat-val">${opens}</div><div class="stat-sub">En ce moment</div></div></div>`;
+  if(currentUser.modules.includes('module-planning')||isAdmin)
+    statsHTML+=`<div class="stat-card gold"><div class="stat-icon amber"><span class="ms">departure_board</span></div><div class="stat-body"><div class="stat-label">Départs en Attente</div><div class="stat-val">${attente}</div><div class="stat-sub">À valider</div></div></div>`;
+  if(isAdmin){
+    statsHTML+=`<div class="stat-card green"><div class="stat-icon green"><span class="ms">payments</span></div><div class="stat-body"><div class="stat-label">CA Aujourd'hui</div><div class="stat-val" style="font-size:1.2rem">${todayRev.toLocaleString()} F</div><div class="stat-sub">Recettes journalières</div></div></div>`;
+    statsHTML+=`<div class="stat-card"><div class="stat-icon" style="background:var(--snow);color:var(--slate)"><span class="ms">group</span></div><div class="stat-body"><div class="stat-label">Comptes Actifs</div><div class="stat-val">${db.users.length}</div><div class="stat-sub">Utilisateurs</div></div></div>`;
+  }
+  document.getElementById('dashboard-stats').innerHTML=statsHTML;
 
-            const payM = document.getElementById('v-payment').value || "ESPECES";
-            previewDiv.innerHTML =
-                buildTicket("CLIENT", dep, dest, dep.sold + 1, payM) +
-                '<div style="margin:8px 0; border-top:2px dashed #000; text-align:center; font-size:10px; font-family:monospace;">✂ ——— COUPER ——— ✂</div>' +
-                buildTicket("GARE", dep, dest, dep.sold + 1, payM);
-        } else {
-            const msg = dName ? "Aucun car disponible pour cette destination" : "Sélectionnez une destination";
-            document.getElementById('v-info').innerText = msg;
-            document.getElementById('v-price').innerText = "—";
-            document.getElementById('v-seats-info').innerText = "";
-            previewDiv.innerHTML = `<div style="text-align:center; padding:60px 0; color:#94a3b8;">${msg}</div>`;
-        }
-    }
+  // Dashboard module shortcuts
+  const mods=[
+    {mod:'module-caisse',icon:'point_of_sale',label:'Ma Caisse',desc:'Ouvrir / clôturer',cls:'blue',title:'Gestion de Caisse'},
+    {mod:'module-vente',icon:'confirmation_number',label:'Vente Billet',desc:'Enregistrer une vente',cls:'blue',title:'Guichet de Vente'},
+    {mod:'module-planning',icon:'calendar_month',label:'Planning',desc:'Suivi des départs',cls:'gold',title:'Planning des Départs'},
+    {mod:'module-recettes',icon:'account_balance_wallet',label:'Bilan Financier',desc:'Recettes & validation',cls:'green',title:'Bilan Financier'},
+  ];
+  document.getElementById('dashboard-grid').innerHTML=mods.filter(m=>currentUser.modules.includes(m.mod)).map(m=>{
+    const bg=m.cls==='gold'?'var(--gold-soft)':m.cls==='green'?'var(--green-soft)':'var(--blue-soft)';
+    const fg=m.cls==='gold'?'#b45309':m.cls==='green'?'var(--green)':'var(--blue)';
+    return `<div class="module-card ${m.cls}" onclick="showSection('${m.mod}','${m.title}',document.querySelector('[data-target=${m.mod}]'))"
+      onmouseover="this.style.boxShadow='0 16px 40px rgba(0,0,0,0.12)'" onmouseout="this.style.boxShadow=''">
+      <div class="mc-icon" style="background:${bg};color:${fg}"><span class="ms">${m.icon}</span></div>
+      <h3>${m.label}</h3>
+      <p>${m.desc}</p>
+    </div>`;
+  }).join('');
 
-    function confirmSale() {
-        const shift = getCurrentShift();
-        const isAdmin = currentUser && currentUser.modules.includes('main-config');
-        if (!shift && !isAdmin) return showToast("Veuillez ouvrir votre caisse !", "error");
-
-        const dep = db.planning.find(p => p.id === window.currentDepId);
-        if (!dep) return showToast("Vente impossible : aucun départ sélectionné.", "error");
-        if (dep.status === 'PARTI') return showToast("Ce car est déjà parti !", "error");
-        if (dep.sold >= dep.seats) return showToast("Car complet !", "error");
-
-        const dest = db.dests.find(d => d.name === dep.dest);
-        const seat = dep.sold + 1;
-        const payM = document.getElementById('v-payment').value;
-
-        document.getElementById('print-zone').innerHTML =
-            buildTicket("CLIENT", dep, dest, seat, payM) +
-            '<div style="margin:20px 0; border-top:2px dashed #000;"></div>' +
-            buildTicket("GARE", dep, dest, seat, payM);
-
-        dep.sold++;
-        const saleRecord = {
-            id: Date.now(), depId: dep.id, dest: dep.dest,
-            price: dest.price, payment: payM,
-            cashier: currentUser.username,
-            time: new Date().toISOString()
-        };
-        db.sales.push(saleRecord);
-        if (shift) shift.total += dest.price;
-
-        save();
-        showToast("Billet validé — Impression en cours...");
-        setTimeout(() => window.print(), 400);
-    }
-
-    // ================================================
-    // CONFIG & CRUD
-    // ================================================
-    function updateComp() {
-        db.comp.name = document.getElementById('c-name').value.trim() || "MA COMPAGNIE";
-        db.comp.slogan = document.getElementById('c-slogan').value.trim();
-        db.comp.tel = document.getElementById('c-tel').value.trim();
-        db.comp.addr = document.getElementById('c-addr').value.trim();
-        save();
-        showToast("Profil Gare mis à jour");
-    }
-
-    function addFleet() {
-        const car = document.getElementById('f-car').value.trim();
-        const seats = parseInt(document.getElementById('f-seats').value);
-        if (!car || !seats || seats < 1) return showToast("Remplissez tous les champs (immat + capacité)", "error");
-        if (db.fleet.find(f => f.car.toLowerCase() === car.toLowerCase())) return showToast("Ce véhicule existe déjà", "warning");
-        db.fleet.push({ car, seats });
-        save();
-        document.getElementById('f-car').value = '';
-        document.getElementById('f-seats').value = '';
-        showToast("Véhicule ajouté");
-    }
-
-    function addDest() {
-        const name = document.getElementById('d-name').value.trim().toUpperCase();
-        const price = parseInt(document.getElementById('d-price').value);
-        if (!name || !price || price < 0) return showToast("Remplissez tous les champs (ville + tarif)", "error");
-        if (db.dests.find(d => d.name === name)) return showToast("Cette destination existe déjà", "warning");
-        db.dests.push({ name, price });
-        save();
-        document.getElementById('d-name').value = '';
-        document.getElementById('d-price').value = '';
-        showToast("Destination ajoutée");
-    }
-
-    function addDeparture() {
-        const cIdx = document.getElementById('p-car-sel').value;
-        const hour = document.getElementById('p-hour').value;
-        const dest = document.getElementById('p-dest-sel').value;
-        if (!cIdx && cIdx !== 0 || !hour || !dest) return showToast("Remplissez tous les champs", "error");
-        db.planning.push({
-            id: Date.now(), dest, hour,
-            car: db.fleet[cIdx].car,
-            seats: db.fleet[cIdx].seats,
-            sold: 0, status: "ATTENTE"
-        });
-        save();
-        showToast("Départ programmé !");
-        // Retour au planning avec mise à jour du menu actif
-        const planBtn = document.querySelector('[data-target=module-planning]');
-        showSection('module-planning', 'Planning des Départs', planBtn);
-    }
-
-    function validerDepart(id) {
-        const dep = db.planning.find(p => p.id === id);
-        if (!dep) return;
-        showConfirm(
-            'Confirmer le Départ',
-            `Confirmer le départ du car ${dep.car} vers ${dep.dest} à ${dep.hour} ? Les ventes seront closes pour ce véhicule.`,
-            () => { dep.status = "PARTI"; save(); showToast("Départ confirmé !"); },
-            'Confirmer Départ', 'var(--primary)'
-        );
-    }
-
-    function supprimerDepart(id) {
-        const dep = db.planning.find(p => p.id === id);
-        if (!dep) return;
-        if (dep.sold > 0) return showToast("Impossible : des billets ont déjà été vendus pour ce départ.", "error");
-        showConfirm(
-            'Supprimer le Départ',
-            `Supprimer le départ ${dep.dest} à ${dep.hour} (${dep.car}) ? Aucun billet n'a été vendu.`,
-            () => {
-                db.planning = db.planning.filter(p => p.id !== id);
-                save();
-                showToast("Départ supprimé");
-            },
-            'Supprimer', 'var(--danger)'
-        );
-    }
-
-    function purgerPlanning() {
-        const nbPartis = db.planning.filter(p => p.status === 'PARTI').length;
-        if (nbPartis === 0) return showToast("Aucun départ à purger", "warning");
-        showConfirm(
-            'Purger le Planning',
-            `Supprimer les ${nbPartis} départ(s) marqués "PARTI" de la liste ? L'historique des ventes est conservé.`,
-            () => {
-                db.planning = db.planning.filter(p => p.status !== 'PARTI');
-                save();
-                showToast(`${nbPartis} départ(s) supprimé(s) du planning`);
-            },
-            'Purger', 'var(--warning)'
-        );
-    }
-
-    // ================================================
-    // UTILISATEURS
-    // ================================================
-    function saveUser() {
-        const username = document.getElementById('u-name').value.trim();
-        const password = document.getElementById('u-pass').value.trim();
-        const editIdx = parseInt(document.getElementById('u-edit-index').value);
-
-        if (!username || !password) return showToast("Identifiant et mot de passe requis", "error");
-
-        const modules = [];
-        document.querySelectorAll('.u-mod:checked').forEach(cb => modules.push(cb.value));
-        if (modules.length === 0) return showToast("Assignez au moins un module", "warning");
-
-        if (editIdx >= 0) {
-            db.users[editIdx] = { username, password, modules };
-            showToast("Utilisateur mis à jour");
-        } else {
-            if (db.users.find(u => u.username === username)) return showToast("Cet identifiant existe déjà", "error");
-            db.users.push({ username, password, modules });
-            showToast("Utilisateur créé");
-        }
-        resetUserForm();
-        save();
-    }
-
-    function editUser(index) {
-        const u = db.users[index];
-        document.getElementById('u-edit-index').value = index;
-        document.getElementById('u-name').value = u.username;
-        document.getElementById('u-pass').value = u.password;
-        document.querySelectorAll('.u-mod').forEach(cb => cb.checked = u.modules.includes(cb.value));
-        document.getElementById('form-user-title').innerText = "Modifier l'Utilisateur";
-        document.getElementById('btn-save-user').innerHTML = "<span class='material-symbols-outlined'>save</span> Mettre à jour";
-        document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
-    }
-
-    function resetUserForm() {
-        document.getElementById('u-edit-index').value = "-1";
-        document.getElementById('u-name').value = "";
-        document.getElementById('u-pass').value = "";
-        document.querySelectorAll('.u-mod').forEach(cb => cb.checked = false);
-        document.getElementById('form-user-title').innerText = "Nouvel Utilisateur";
-        document.getElementById('btn-save-user').innerHTML = "<span class='material-symbols-outlined'>person_add</span> Créer l'utilisateur";
-        document.getElementById('btn-cancel-edit').style.display = 'none';
-    }
-
-    function deleteUser(index) {
-        if (db.users[index].username === 'admin') return showToast("Impossible de supprimer le Super-Admin", "error");
-        showConfirm(
-            'Supprimer le Compte',
-            `Supprimer définitivement le compte "${db.users[index].username}" ?`,
-            () => { db.users.splice(index, 1); save(); showToast("Compte supprimé"); },
-            'Supprimer', 'var(--danger)'
-        );
-    }
-
-    // ================================================
-    // EXPORTS
-    // ================================================
-    function exportReport(format) {
-        if (format === 'PDF') {
-            document.body.classList.add('print-full-page');
-            document.getElementById('print-zone').innerHTML = `<h2>Rapport des Caisses</h2>` + document.getElementById('report-table').outerHTML;
-            window.print();
-            document.body.classList.remove('print-full-page');
-            document.getElementById('print-zone').innerHTML = '';
-        } else if (format === 'CSV') {
-            let csv = "CAISSIER,OUVERTURE,CLOTURE,MONTANT,STATUT\n";
-            db.shifts.forEach(s => {
-                const out = s.endTime ? new Date(s.endTime).toLocaleString('fr-FR') : 'En cours';
-                csv += `"${s.cashier}","${new Date(s.startTime).toLocaleString('fr-FR')}","${out}","${s.total}","${s.status}"\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `rapport_caisses_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
-        }
-    }
-
-    // ================================================
-    // FILTRE HISTORIQUE VENTES
-    // ================================================
-    function filterSales() {
-        const q = (document.getElementById('search-sales').value || '').toLowerCase();
-        const rows = document.querySelectorAll('#all-sales-body tr');
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
-        });
-    }
-
-    // ================================================
-    // RENDER CENTRAL
-    // ================================================
-    function render() {
-        if (!currentUser) return;
-
-        // --- Caisse ---
-        const shift = getCurrentShift();
-        if (shift) {
-            document.getElementById('caisse-closed-view').style.display = 'none';
-            document.getElementById('caisse-open-view').style.display = 'block';
-            document.getElementById('caisse-total').innerText = shift.total.toLocaleString() + " FCFA";
-            const openSince = new Date(shift.startTime).toLocaleTimeString('fr-FR');
-            document.getElementById('caisse-open-since').innerText = `Ouverte depuis ${openSince}`;
-            const mySales = db.sales.filter(s => s.cashier === currentUser.username && new Date(s.time) >= new Date(shift.startTime));
-            document.getElementById('caisse-count').innerText = mySales.length;
-            document.getElementById('caisse-history-body').innerHTML = mySales.slice().reverse().map(s =>
-                `<tr>
-                    <td>${new Date(s.time).toLocaleTimeString('fr-FR')}</td>
-                    <td><strong>${s.dest}</strong></td>
-                    <td><span class="badge badge-primary">${s.payment}</span></td>
-                    <td><strong>${s.price.toLocaleString()} F</strong></td>
-                </tr>`
-            ).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:30px;">Aucune vente cette session</td></tr>';
-        } else {
-            document.getElementById('caisse-closed-view').style.display = 'block';
-            document.getElementById('caisse-open-view').style.display = 'none';
-        }
-
-        // --- Config infos (seulement si le champ n'est pas en focus) ---
-        const focusedId = document.activeElement ? document.activeElement.id : '';
-        if (focusedId !== 'c-name') document.getElementById('c-name').value = db.comp.name || "";
-        if (focusedId !== 'c-slogan') document.getElementById('c-slogan').value = db.comp.slogan || "";
-        if (focusedId !== 'c-tel') document.getElementById('c-tel').value = db.comp.tel || "";
-        if (focusedId !== 'c-addr') document.getElementById('c-addr').value = db.comp.addr || "";
-
-        // --- Selects vente/planning ---
-        const dOpt = db.dests.map(d => `<option value="${d.name}">${d.name} — ${d.price.toLocaleString()} F</option>`).join('');
-        document.getElementById('p-dest-sel').innerHTML = dOpt || '<option value="">— Aucune destination —</option>';
-        document.getElementById('v-dest').innerHTML = dOpt || '<option value="">— Aucune destination —</option>';
-        document.getElementById('p-car-sel').innerHTML = db.fleet.map((f, i) =>
-            `<option value="${i}">${f.car} (${f.seats} places)</option>`
-        ).join('') || '<option value="">— Aucun véhicule —</option>';
-
-        // --- Flotte ---
-        document.getElementById('fleet-body').innerHTML = db.fleet.length ? db.fleet.map((f, i) =>
-            `<tr>
-                <td><strong>${f.car}</strong></td>
-                <td>${f.seats} places</td>
-                <td><button class="btn-danger" onclick="showConfirm('Retirer Véhicule', 'Retirer ${f.car} de la flotte ?', ()=>{db.fleet.splice(${i},1);save();})">Retirer</button></td>
-            </tr>`
-        ).join('') : '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:25px;">Aucun véhicule</td></tr>';
-
-        // --- Destinations ---
-        document.getElementById('dest-body').innerHTML = db.dests.length ? db.dests.map((d, i) =>
-            `<tr>
-                <td><strong>${d.name}</strong></td>
-                <td>${d.price.toLocaleString()} FCFA</td>
-                <td><button class="btn-danger" onclick="showConfirm('Supprimer Destination', 'Supprimer la destination ${d.name} ?', ()=>{db.dests.splice(${i},1);save();})">Retirer</button></td>
-            </tr>`
-        ).join('') : '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:25px;">Aucune destination</td></tr>';
-
-        // --- Planning ---
-        const isAdmin = currentUser.modules.includes('main-config');
-        document.getElementById('live-planning-body').innerHTML = db.planning.length ? db.planning.slice().reverse().map(p => {
-            const isFull = p.sold >= p.seats;
-            const fillPct = Math.round((p.sold / p.seats) * 100);
-            const fillColor = fillPct >= 100 ? 'var(--danger)' : fillPct >= 80 ? 'var(--warning)' : 'var(--success)';
-            let statut = '';
-            if (p.status === 'PARTI') {
-                statut = '<span class="badge badge-muted">PARTI</span>';
-            } else if (isFull) {
-                statut = `<button class="btn-valid" onclick="validerDepart(${p.id})"><span class="material-symbols-outlined" style="font-size:14px;">check</span> COMPLET — Départ</button>`;
-            } else {
-                statut = `<button class="btn-valid" onclick="validerDepart(${p.id})"><span class="material-symbols-outlined" style="font-size:14px;">directions_bus</span> Départ</button>`;
-            }
-            const adminAction = isAdmin && p.status === 'ATTENTE' && p.sold === 0
-                ? `<button class="btn-danger" style="padding:5px 10px; font-size:12px;" onclick="supprimerDepart(${p.id})">Supp</button>`
-                : '';
-            return `<tr style="${p.status === 'PARTI' ? 'opacity:0.5;' : ''}">
-                <td><strong style="color:var(--primary);">${p.hour}</strong></td>
-                <td><strong>${p.dest}</strong></td>
-                <td><span class="badge badge-primary">${p.car}</span></td>
-                <td>
-                    <span style="color:${fillColor}; font-weight:bold;">${p.sold}/${p.seats}</span>
-                    <div style="height:4px; background:var(--border); border-radius:2px; margin-top:4px; width:80px;">
-                        <div style="height:4px; background:${fillColor}; border-radius:2px; width:${Math.min(fillPct,100)}%;"></div>
-                    </div>
-                </td>
-                <td>${statut}</td>
-                <td class="admin-only" style="${isAdmin ? '' : 'display:none;'}">${adminAction}</td>
-            </tr>`;
-        }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:35px;">Aucun départ programmé</td></tr>';
-
-        // --- Recettes ---
-        const totalRev = db.sales.reduce((a, b) => a + b.price, 0);
-        document.getElementById('r-total').innerText = totalRev.toLocaleString() + " FCFA";
-        document.getElementById('r-count').innerText = db.sales.length;
-        const today = new Date().toDateString();
-        const todayRev = db.sales.filter(s => new Date(s.time).toDateString() === today).reduce((a, b) => a + b.price, 0);
-        document.getElementById('r-today').innerText = todayRev.toLocaleString() + " FCFA";
-
-        document.getElementById('shifts-body').innerHTML = db.shifts.length ? db.shifts.slice().reverse().map(s => {
-            const out = s.endTime ? new Date(s.endTime).toLocaleString('fr-FR') : '<span class="badge badge-success">En cours</span>';
-            const statusBadge = s.status === 'VALIDATED'
-                ? '<span class="badge badge-success">Validé</span>'
-                : s.status === 'CLOSED'
-                ? '<span class="badge badge-warning">À valider</span>'
-                : '<span class="badge badge-primary">Ouvert</span>';
-            let action = '';
-            if (s.status === 'CLOSED') action = `<button class="btn-valid" onclick="validateShift(${s.id})">Valider</button>`;
-            else if (s.status === 'VALIDATED') action = `<span class="material-symbols-outlined" style="color:var(--success); font-size:20px;">verified</span>`;
-            return `<tr>
-                <td><strong>${s.cashier}</strong></td>
-                <td>${new Date(s.startTime).toLocaleString('fr-FR')}</td>
-                <td>${out}</td>
-                <td><strong>${s.total.toLocaleString()} FCFA</strong></td>
-                <td>${statusBadge} ${action}</td>
-            </tr>`;
-        }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:25px;">Aucun shift enregistré</td></tr>';
-
-        document.getElementById('all-sales-body').innerHTML = db.sales.length ? db.sales.slice().reverse().map(s =>
-            `<tr>
-                <td>${new Date(s.time).toLocaleString('fr-FR')}</td>
-                <td>${s.cashier}</td>
-                <td><strong>${s.dest}</strong></td>
-                <td><span class="badge badge-primary">${s.payment}</span></td>
-                <td><strong>${s.price.toLocaleString()} FCFA</strong></td>
-            </tr>`
-        ).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:25px;">Aucune vente enregistrée</td></tr>';
-
-        // --- Utilisateurs ---
-        document.getElementById('users-body').innerHTML = db.users.map((u, i) => {
-            const mods = u.modules.length;
-            return `<tr>
-                <td><strong>${u.username}</strong>${u.modules.includes('main-config') ? ' 🔒' : ''}</td>
-                <td><span class="badge badge-muted">${mods} module(s)</span></td>
-                <td>
-                    <button class="btn-action" style="padding:5px 10px; font-size:12px; background:var(--sidebar); display:inline-flex; width:auto;" onclick="editUser(${i})">
-                        <span class="material-symbols-outlined" style="font-size:14px;">edit</span>
-                    </button>
-                    ${u.username !== 'admin' ? `<button class="btn-danger" style="padding:5px 10px; font-size:12px; margin-left:5px;" onclick="deleteUser(${i})">Supp</button>` : ''}
-                </td>
-            </tr>`;
-        }).join('');
-
-        // --- Dashboard stats ---
-        const hasAccess = (m) => currentUser.modules.includes(m);
-        const openShiftCount = db.shifts.filter(s => s.status === 'OPEN').length;
-        const departureCount = db.planning.filter(p => p.status === 'ATTENTE').length;
-        let statsHTML = '';
-        if (hasAccess('module-caisse') || isAdmin) {
-            statsHTML += `<div class="stat-card" style="border-left:4px solid var(--primary);">
-                <div class="stat-icon" style="background:#dbeafe; color:var(--primary);"><span class="material-symbols-outlined">point_of_sale</span></div>
-                <div class="stat-info"><h3>Caisses Ouvertes</h3><h2>${openShiftCount}</h2><small>En ce moment</small></div>
-            </div>`;
-        }
-        if (hasAccess('module-planning') || isAdmin) {
-            statsHTML += `<div class="stat-card" style="border-left:4px solid var(--warning);">
-                <div class="stat-icon" style="background:#fef3c7; color:var(--warning);"><span class="material-symbols-outlined">directions_bus</span></div>
-                <div class="stat-info"><h3>Départs en Attente</h3><h2>${departureCount}</h2><small>À valider</small></div>
-            </div>`;
-        }
-        if (isAdmin) {
-            statsHTML += `<div class="stat-card" style="border-left:4px solid var(--success);">
-                <div class="stat-icon" style="background:#dcfce7; color:var(--success);"><span class="material-symbols-outlined">payments</span></div>
-                <div class="stat-info"><h3>CA Aujourd'hui</h3><h2>${todayRev.toLocaleString()} F</h2><small>Recettes journalières</small></div>
-            </div>`;
-            statsHTML += `<div class="stat-card" style="border-left:4px solid var(--sidebar);">
-                <div class="stat-icon" style="background:#f1f5f9; color:var(--sidebar);"><span class="material-symbols-outlined">group</span></div>
-                <div class="stat-info"><h3>Comptes Actifs</h3><h2>${db.users.length}</h2><small>Utilisateurs enregistrés</small></div>
-            </div>`;
-        }
-        document.getElementById('dashboard-stats').innerHTML = statsHTML;
-
-        // --- Dashboard modules ---
-        let dashHTML = '';
-        const dashModules = [
-            { mod: 'module-caisse', icon: 'point_of_sale', label: 'Ma Caisse', color: 'var(--primary)', title: 'Gestion de Caisse' },
-            { mod: 'module-vente', icon: 'confirmation_number', label: 'Vente Billet', color: 'var(--primary)', title: 'Guichet de Vente' },
-            { mod: 'module-planning', icon: 'calendar_month', label: 'Planning', color: 'var(--warning)', title: 'Planning des Départs' },
-            { mod: 'module-recettes', icon: 'account_balance_wallet', label: 'Bilan Financier', color: 'var(--success)', title: 'Bilan Financier' },
-        ];
-        dashModules.forEach(m => {
-            if (currentUser.modules.includes(m.mod)) {
-                dashHTML += `<div class="card" style="cursor:pointer; text-align:center; transition:0.3s;" 
-                    onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 25px rgba(0,0,0,0.1)'"
-                    onmouseout="this.style.transform='';this.style.boxShadow=''"
-                    onclick="showSection('${m.mod}', '${m.title}', document.querySelector('[data-target=${m.mod}]'))">
-                    <span class="material-symbols-outlined" style="font-size:44px; color:${m.color}; margin-bottom:12px;">${m.icon}</span>
-                    <h3>${m.label}</h3>
-                </div>`;
-            }
-        });
-        document.getElementById('dashboard-grid').innerHTML = dashHTML;
-
-        // Rafraîchir la vue vente
-        updateSaleView();
-    }
-
-// Télécharger une copie des données
-function exporterSauvegarde() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const dlAnchorElem = document.createElement('a');
-    dlAnchorElem.setAttribute("href", dataStr);
-    dlAnchorElem.setAttribute("download", "Transpro_Backup_" + new Date().toISOString().slice(0,10) + ".json");
-    dlAnchorElem.click();
-    showToast("Sauvegarde téléchargée avec succès !");
+  updateSaleView();
 }
-
-// Restaurer une copie
-function importerSauvegarde(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const importedDb = JSON.parse(e.target.result);
-            if(importedDb && importedDb.comp && importedDb.users) {
-                db = importedDb;
-                save();
-                showToast("Système restauré avec succès !", "success");
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showToast("Fichier non valide.", "error");
-            }
-        } catch (err) {
-            showToast("Erreur de lecture du fichier.", "error");
-        }
-    };
-    reader.readAsText(file);
-}
-
 </script>
 </body>
 </html>
