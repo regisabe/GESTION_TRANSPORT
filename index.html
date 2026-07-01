@@ -1,0 +1,3055 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TransitPro</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#E8A020" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TransitPro" />
+  <link rel="apple-touch-icon" href="icons/icon-180x180.png" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #07121F; }
+    input, select, button, textarea { font-family: inherit; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #243B55; border-radius: 4px; }
+    @media (min-width: 640px) { ::-webkit-scrollbar { width: 8px; height: 8px; } }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// ═══════════════════════════════════════════════════════════
+// THEMES
+// ═══════════════════════════════════════════════════════════
+const themes = {
+  dark: {
+    bg: "#07121F", surface: "#0B1E3D", surfaceL: "#132848", surfaceLL: "#1A3357",
+    border: "#243B55", inputBg: "#0F2035",
+    text: "#F1F5F9", textSub: "#94A3B8", textMuted: "#64748B",
+    gold: "#E8A020", goldL: "#F5B845",
+    green: "#16A34A", red: "#DC2626", orange: "#EA580C", blue: "#2563EB",
+    purple: "#7C3AED",
+  },
+  light: {
+    bg: "#F1F5F9", surface: "#FFFFFF", surfaceL: "#F8FAFC", surfaceLL: "#EEF2F7",
+    border: "#E2E8F0", inputBg: "#F8FAFC",
+    text: "#0F172A", textSub: "#475569", textMuted: "#94A3B8",
+    gold: "#B45309", goldL: "#D97706",
+    green: "#15803D", red: "#B91C1C", orange: "#C2410C", blue: "#1D4ED8",
+    purple: "#6D28D9",
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// DONNÉES PAR DÉFAUT
+// ═══════════════════════════════════════════════════════════
+const TYPES_BAGAGE = ["Valise", "Sac", "Carton", "Colis", "Sacoche", "Autre"];
+const TAILLES_BAGAGE = ["Petit", "Moyen", "Grand", "Très grand"];
+
+const defaultDB = {
+  compagnie: { nom: "TransitPro", slogan: "Votre mobilité, notre mission", tel: "+221 33 000 00 00", tel2: "", email: "info@transitpro.sn", adresse: "Gare Routière, Dakar", ville: "Dakar", pays: "Sénégal", siteWeb: "www.transitpro.sn", rccm: "", ninea: "", logo: "🚌", logoUrl: "", couleurPrimaire: "#E8A020", couleurSecondaire: "#243B55", devise: "FCFA", fondateur: "", anneeCreation: "", agrément: "" },
+  ticketPrefix: "TP", ticketCounter: 1,
+  bagagePrefix: "BG", bagageCounter: 1,
+  tarifsBagage: [
+    { id: 1, nom: "Petit colis", taille: "Petit", prixBase: 500, description: "Sac à dos, petite valise" },
+    { id: 2, nom: "Bagage moyen", taille: "Moyen", prixBase: 1000, description: "Valise standard, carton moyen" },
+    { id: 3, nom: "Grand bagage", taille: "Grand", prixBase: 2000, description: "Grande valise, gros carton" },
+    { id: 4, nom: "Très grand colis", taille: "Très grand", prixBase: 3500, description: "Colis encombrant, bagage XXL" },
+  ],
+  bagages: [],
+  colis: [],
+  colisPrefix: "CX", colisCounter: 1,
+  tarifsColisExpress: [
+    { id: 1, nom: "Petit colis", poids: "< 5 kg", prixBase: 1000, delai: "Même jour" },
+    { id: 2, nom: "Colis moyen", poids: "5–15 kg", prixBase: 2500, delai: "Même jour" },
+    { id: 3, nom: "Gros colis", poids: "15–30 kg", prixBase: 4500, delai: "J+1" },
+    { id: 4, nom: "Colis fragile", poids: "Tout poids", prixBase: 3500, delai: "Même jour" },
+    { id: 5, nom: "Documents", poids: "< 1 kg", prixBase: 500, delai: "Même jour" },
+  ],
+  vehicules: [
+    { id: "V001", type: "Bus", marque: "Mercedes-Benz", modele: "O500", immatriculation: "DK-1234-AB", capacite: 40, annee: 2019, chauffeur: "Moussa Diallo", statut: "En service", couleur: "#2563EB", kilometrage: 128000 },
+    { id: "V002", type: "Autocar", marque: "Volvo", modele: "B11R", immatriculation: "DK-5678-CD", capacite: 55, annee: 2021, chauffeur: "Ibrahima Sow", statut: "En service", couleur: "#16A34A", kilometrage: 74000 },
+    { id: "V003", type: "Car Rapide", marque: "Renault", modele: "Master", immatriculation: "TH-9012-EF", capacite: 25, annee: 2017, chauffeur: "Abdou Fall", statut: "En maintenance", couleur: "#EA580C", kilometrage: 203000 },
+  ],
+  routes: [
+    { id: 1, depart: "Dakar", arrivee: "Thiès", duree: "1h30", prix: { Bus: 2500, Autocar: 3000, "Car Rapide": 2000, Minibus: 2200, Taxi: 5000 } },
+    { id: 2, depart: "Dakar", arrivee: "Mbour", duree: "2h00", prix: { Bus: 3000, Autocar: 3500, "Car Rapide": 2500, Minibus: 2800, Taxi: 6000 } },
+    { id: 3, depart: "Dakar", arrivee: "Saint-Louis", duree: "5h00", prix: { Bus: 6000, Autocar: 7000, "Car Rapide": 5000, Minibus: 5500, Taxi: 12000 } },
+  ],
+  planning: [],
+  ventes: [],
+  sessions: [],
+  users: [
+    { id: "U001", nom: "Admin", login: "admin", pin: "1234", role: "admin", modules: ["dashboard","caisse","vente","bagages","colis","planning","recettes","rapports","config"] },
+    { id: "U002", nom: "Amadou Diallo", login: "amadou", pin: "5678", role: "caissier", modules: ["caisse","vente","bagages","colis","planning"] },
+  ],
+};
+
+const VEHICULE_TYPES = ["Bus", "Autocar", "Car Rapide", "Minibus", "Taxi", "Camion", "Van"];
+const STATUTS_VEH = ["En service", "En maintenance", "Hors service", "En révision"];
+const PAIEMENTS = ["Espèces", "Wave", "Orange Money", "MTN Money", "Carte"];
+const ALL_MODULES = [
+  { id: "dashboard", label: "Accueil", icon: "📊" },
+  { id: "caisse", label: "Ma Caisse", icon: "🏦" },
+  { id: "vente", label: "Vente Billet", icon: "🎫" },
+  { id: "bagages", label: "Bagages", icon: "🧳" },
+  { id: "colis", label: "Colis Express", icon: "📦" },
+  { id: "planning", label: "Planning", icon: "🚌" },
+  { id: "recettes", label: "Recettes", icon: "💰" },
+  { id: "rapports", label: "Rapports", icon: "📋" },
+  { id: "config", label: "Configuration", icon: "⚙️" },
+];
+
+function QRPlaceholder({ value, size = 70 }) {
+  const hash = value.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+  const cells = 11; const cell = size / cells; const grid = [];
+  for (let r = 0; r < cells; r++)
+    for (let c2 = 0; c2 < cells; c2++) {
+      const isCorner = (r < 3 && c2 < 3) || (r < 3 && c2 > cells - 4) || (r > cells - 4 && c2 < 3);
+      const rand = ((hash * (r * 13 + c2 * 7 + 3)) & 0xFF) > 120;
+      if (isCorner || rand) grid.push({ r, c: c2 });
+    }
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
+      <rect width={size} height={size} fill="white" />
+      {grid.map((g, i) => <rect key={i} x={g.c * cell} y={g.r * cell} width={cell - 0.5} height={cell - 0.5} fill="#000" />)}
+    </svg>
+  );
+}
+
+function Toast({ msg, type = "success" }) {
+  if (!msg) return null;
+  const bg = type === "error" ? "#B91C1C" : type === "warn" ? "#C2410C" : "#15803D";
+  return (
+    <div style={{ position: "fixed", top: 72, left: "50%", transform: "translateX(-50%)", background: bg, color: "#fff", padding: "10px 22px", borderRadius: 12, fontSize: 13, fontWeight: 700, zIndex: 500, whiteSpace: "nowrap", boxShadow: "0 4px 24px #0009" }}>
+      {msg}
+    </div>
+  );
+}
+
+function useToast() {
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+  const show = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast({ msg: "" }), 2800); };
+  return [toast, show];
+}
+
+function Inp({ value, onChange, placeholder, type = "text", T }) {
+  return <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+    style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />;
+}
+
+function Sel({ value, onChange, children, T }) {
+  return <select value={value} onChange={onChange}
+    style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }}>
+    {children}
+  </select>;
+}
+
+function Fld({ label, children, T }) {
+  return <div style={{ marginBottom: 11 }}>
+    <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
+    {children}
+  </div>;
+}
+
+function Btn({ onClick, children, color, outline, small, full, danger }) {
+  const bg = danger ? "#B91C1C" : color;
+  return <button onClick={onClick} style={{
+    background: outline ? `${bg}18` : bg, color: outline ? bg : (danger ? "#fff" : "#fff"),
+    border: outline ? `1.5px solid ${bg}` : "none", borderRadius: 9,
+    padding: small ? "5px 11px" : "10px 16px", fontSize: small ? 11 : 13,
+    fontWeight: 700, cursor: "pointer", width: full ? "100%" : "auto", whiteSpace: "nowrap",
+  }}>{children}</button>;
+}
+
+function Card({ children, border, T, style: extra = {} }) {
+  return <div style={{ background: T.surface, borderRadius: 14, padding: 14, marginBottom: 10, border: `1px solid ${T.border}`, ...(border ? { borderLeft: `3px solid ${border}` } : {}), ...extra }}>{children}</div>;
+}
+
+function Modal({ title, onClose, children, T }) {
+  const vp = useViewport();
+  const desktop = vp.width >= 640;
+  return <div style={{ position: "fixed", inset: 0, background: "#000C", zIndex: 300, display: "flex", alignItems: desktop ? "center" : "flex-end", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div style={{ background: T.surface, width: "100%", maxWidth: desktop ? 520 : 430, margin: desktop ? 0 : "0 auto", borderRadius: desktop ? 18 : "20px 20px 0 0", padding: desktop ? "24px 26px 30px" : "20px 18px 28px", maxHeight: "90vh", overflowY: "auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: T.gold }}>{title}</span>
+        <button onClick={onClose} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 22, cursor: "pointer" }}>✕</button>
+      </div>
+      {children}
+    </div>
+  </div>;
+}
+
+function StatutBadge({ s }) {
+  const map = { "En service": "#16A34A", "En maintenance": "#EA580C", "Hors service": "#DC2626", "En révision": "#2563EB", "ATTENTE": "#2563EB", "PARTI": "#64748B", "OUVERTE": "#16A34A", "FERMEE": "#EA580C", "VALIDEE": "#7C3AED", "Payé": "#16A34A" };
+  const c = map[s] || "#64748B";
+  return <span style={{ background: `${c}22`, color: c, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>{s}</span>;
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPRESSION TICKET
+// ═══════════════════════════════════════════════════════════
+function buildPrintHTML(ticket, compagnie) {
+  const c = compagnie;
+  const logoHtml = c.logoUrl
+    ? `<img src="${c.logoUrl}" style="width:72px;height:72px;object-fit:contain;margin-bottom:4px;border-radius:8px;" />`
+    : `<div style="font-size:36px;margin-bottom:4px;">${c.logo}</div>`;
+  const primaryColor = c.couleurPrimaire || "#B45309";
+  const ticketBlock = (type) => `
+    <div style="font-family:'Courier New',monospace;width:300px;margin:0 auto;padding:14px;border:2px solid #ccc;border-radius:8px;color:#000;background:#fff;">
+      <div style="text-align:center;border-bottom:3px solid ${primaryColor};padding-bottom:10px;margin-bottom:10px;">
+        ${logoHtml}
+        <div style="font-size:18px;font-weight:900;letter-spacing:1px;color:${primaryColor};">${c.nom.toUpperCase()}</div>
+        <div style="font-size:10px;color:#555;font-style:italic;">${c.slogan}</div>
+        <div style="font-size:9px;color:#777;margin-top:3px;">${c.adresse}${c.ville ? ", " + c.ville : ""}${c.pays ? " — " + c.pays : ""}</div>
+        <div style="font-size:9px;color:#777;">📞 ${c.tel}${c.tel2 ? " / " + c.tel2 : ""}</div>
+        ${c.email ? `<div style="font-size:9px;color:#777;">✉ ${c.email}</div>` : ""}
+        ${c.siteWeb ? `<div style="font-size:9px;color:#777;">🌐 ${c.siteWeb}</div>` : ""}
+        ${c.rccm || c.ninea ? `<div style="font-size:8px;color:#999;margin-top:2px;">${c.rccm ? "RCCM: " + c.rccm : ""}${c.rccm && c.ninea ? " · " : ""}${c.ninea ? "NINEA: " + c.ninea : ""}</div>` : ""}
+        ${c.agrément ? `<div style="font-size:8px;color:#999;">Agrément: ${c.agrément}</div>` : ""}
+      </div>
+      <div style="text-align:center;margin-bottom:8px;">
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;">*** ${type === "V" ? "TICKET VOYAGEUR" : "SOUCHE GARE"} ***</div>
+        <div style="font-size:24px;font-weight:900;letter-spacing:3px;color:${primaryColor};">${ticket.id}</div>
+        <span style="font-size:10px;font-weight:800;padding:3px 12px;border:2px solid ${primaryColor};color:${primaryColor};display:inline-block;margin-top:3px;">✓ PAYÉ</span>
+      </div>
+      <div style="border-top:2px dashed #ccc;border-bottom:2px dashed #ccc;padding:8px 0;margin:8px 0;">
+        <div style="text-align:center;font-size:15px;font-weight:900;margin-bottom:6px;color:#000;">${ticket.route.replace("→","━━►")}</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Passager</div><div style="font-size:12px;font-weight:700;">${ticket.passager}</div>${ticket.passagerTel ? `<div style="font-size:10px;color:#555;">📞 ${ticket.passagerTel}</div>` : ""}</div>
+          <div style="text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Date</div><div style="font-size:12px;font-weight:700;">${ticket.date}</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Départ</div><div style="font-size:16px;font-weight:900;">${ticket.heureDep}</div></div>
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Véhicule</div><div style="font-size:12px;font-weight:700;">${ticket.vehicule}</div></div>
+          <div style="text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Siège</div><div style="font-size:16px;font-weight:900;color:${primaryColor};">${ticket.siege}</div></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0;">
+        <div>
+          <div style="font-size:9px;color:#888;text-transform:uppercase;">Prix · ${ticket.paiement}</div>
+          <div style="font-size:20px;font-weight:900;color:${primaryColor};">${ticket.prix.toLocaleString()} <span style="font-size:11px;">${c.devise || "FCFA"}</span></div>
+        </div>
+        ${type === "V" ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${ticket.id}" width="70" style="border-radius:4px;" />` : ""}
+      </div>
+      <div style="border-top:2px dashed #ccc;padding-top:6px;margin-top:6px;font-size:9px;color:#888;text-align:center;">
+        Émis le ${ticket.date} à ${ticket.heureEmission} · Caissier : ${ticket.caissier}
+      </div>
+    </div>`;
+  return ticketBlock("V") + `<div style="margin:12px auto;width:300px;text-align:center;border-top:2px dashed #ccc;font-size:10px;padding-top:6px;">✂ ─ ─ ─ COUPER ICI ─ ─ ─ ✂</div>` + ticketBlock("G");
+}
+
+function PrintModal({ ticket, db, T, onClose }) {
+  const ref = useRef();
+  const handlePrint = () => {
+    const win = window.open("", "_blank", "width=420,height=750");
+    win.document.write(`<html><head><title>${ticket.id}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;display:flex;flex-direction:column;align-items:center;padding:10px;}</style></head><body>${ref.current.innerHTML}</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+  return (
+    <Modal title="Aperçu avant impression" onClose={onClose} T={T}>
+      <div ref={ref} dangerouslySetInnerHTML={{ __html: buildPrintHTML(ticket, db.compagnie) }} style={{ transform: "scale(0.85)", transformOrigin: "top center" }} />
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <Btn onClick={handlePrint} color={T.gold} full>🖨️ Imprimer (double ticket)</Btn>
+        <Btn onClick={onClose} color={T.textMuted} outline>Fermer</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// SECTION CAISSE
+// ═══════════════════════════════════════════════════════════
+function CaisseSection({ db, setDB, user, T }) {
+  const [toast, show] = useToast();
+  const session = db.sessions.find(s => s.caissier === user.nom && s.statut === "OUVERTE");
+  const mesVentes = session ? db.ventes.filter(v => v.shiftId === session.id) : [];
+  const now = () => new Date().toLocaleString("fr-FR");
+
+  const ouvrir = () => {
+    if (session) return;
+    const s = { id: Date.now(), caissier: user.nom, ouverture: now(), cloture: null, total: 0, statut: "OUVERTE" };
+    setDB(d => ({ ...d, sessions: [...d.sessions, s] }));
+    show("✅ Caisse ouverte !");
+  };
+
+  const cloturer = () => {
+    setDB(d => ({ ...d, sessions: d.sessions.map(s => s.id === session.id ? { ...s, statut: "FERMEE", cloture: now() } : s) }));
+    show("Caisse clôturée — en attente de validation admin.");
+  };
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+      {!session ? (
+        <Card T={T} style={{ textAlign: "center", padding: "36px 20px" }}>
+          <div style={{ fontSize: 52, marginBottom: 10 }}>🏦</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 6 }}>Caisse fermée</div>
+          <div style={{ fontSize: 12, color: T.textSub, marginBottom: 20 }}>Ouvrez votre caisse pour commencer à vendre.</div>
+          <Btn onClick={ouvrir} color={T.gold} full>Ouvrir ma caisse</Btn>
+        </Card>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            {[
+              { label: "Statut", val: "OUVERTE", color: T.green },
+              { label: "Billet(s) vendus", val: mesVentes.length, color: T.blue },
+              { label: "Total session", val: `${session.total.toLocaleString()} F`, color: T.gold },
+              { label: "Ouverte à", val: session.ouverture.split(" ")[1] || session.ouverture, color: T.textSub },
+            ].map(s => (
+              <Card key={s.label} T={T} style={{ padding: "12px 14px" }}>
+                <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{s.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: s.color, marginTop: 3 }}>{s.val}</div>
+              </Card>
+            ))}
+          </div>
+          <Card T={T}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>Historique session</span>
+              <Btn onClick={cloturer} color={T.red} outline small>Clôturer la caisse</Btn>
+            </div>
+            {mesVentes.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "20px 0", color: T.textMuted, fontSize: 12 }}>Aucune vente pour l'instant</div>
+            ) : mesVentes.slice().reverse().map(v => (
+              <div key={v.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${T.border}`, fontSize: 12 }}>
+                <div>
+                  <span style={{ fontWeight: 700, color: T.text }}>{v.ticketId}</span>
+                  <span style={{ color: T.textSub, marginLeft: 8 }}>{v.dest}</span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700, color: T.gold }}>{v.prix.toLocaleString()} F</div>
+                  <div style={{ color: T.textMuted, fontSize: 10 }}>{v.paiement}</div>
+                </div>
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// SECTION VENTE BILLET
+// ═══════════════════════════════════════════════════════════
+function VenteSection({ db, setDB, user, T }) {
+  const [toast, show] = useToast();
+  const [sel, setSel] = useState({ routeId: "", planId: "", paiement: "Espèces" });
+  const [passagerNom, setPassagerNom] = useState("");
+  const [passagerTel, setPassagerTel] = useState("");
+  const [printTicket, setPrintTicket] = useState(null);
+
+  const session = db.sessions.find(s => s.caissier === user.nom && s.statut === "OUVERTE");
+  const selectedRoute = db.routes.find(r => r.id === parseInt(sel.routeId));
+  const selectedPlan = db.planning.find(p => p.id === parseInt(sel.planId));
+  const selectedVeh = selectedPlan ? db.vehicules.find(v => v.id === selectedPlan.vehiculeId) : null;
+  const prix = selectedRoute && selectedVeh ? (selectedRoute.prix[selectedVeh.type] || 0) : 0;
+
+  // Calcul du prochain siège automatique
+  const nextSiege = selectedPlan && selectedVeh
+    ? String(selectedPlan.vendu + 1).padStart(2, "0")
+    : "—";
+
+  const placesRestantes = selectedPlan && selectedVeh
+    ? selectedVeh.capacite - selectedPlan.vendu
+    : null;
+
+  const complet = placesRestantes !== null && placesRestantes <= 0;
+
+  const departsDispos = selectedRoute
+    ? db.planning.filter(p => {
+        const r = db.routes.find(r => r.id === p.routeId);
+        const v = db.vehicules.find(v => v.id === p.vehiculeId);
+        return r?.id === selectedRoute.id && p.statut === "ATTENTE";
+      })
+    : [];
+
+  const vendre = () => {
+    if (!session) { show("Ouvrez votre caisse d'abord !", "error"); return; }
+    if (!sel.routeId || !sel.planId) { show("Choisissez une route et un départ", "error"); return; }
+    if (complet) { show("Ce départ est complet !", "error"); return; }
+    const now = new Date();
+    const date = now.toLocaleDateString("fr-FR");
+    const heureEmission = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const id = `${db.ticketPrefix}-${String(db.ticketCounter).padStart(3, "0")}`;
+    const siegeAuto = String(selectedPlan.vendu + 1).padStart(2, "0");
+    const nomPassager = passagerNom.trim() || `Passager ${db.ticketCounter}`;
+    const ticket = {
+      id, passager: nomPassager, passagerTel: passagerTel.trim(), route: `${selectedRoute.depart} → ${selectedRoute.arrivee}`,
+      vehicule: selectedVeh?.type || "—", heureDep: selectedPlan.heure, siege: siegeAuto,
+      prix, paiement: sel.paiement, statut: "Payé", caissier: user.nom, date, heureEmission,
+    };
+    const vente = { id: Date.now(), ticketId: id, dest: `${selectedRoute.depart} → ${selectedRoute.arrivee}`, depart: selectedRoute.depart, arrivee: selectedRoute.arrivee, prix, paiement: sel.paiement, caissier: user.nom, shiftId: session.id, heure: heureEmission, date, siege: siegeAuto, passager: nomPassager, passagerTel: passagerTel.trim(), planId: selectedPlan.id, vehicule: selectedVeh?.type || "—", immatriculation: selectedVeh?.immatriculation || "—", heureDep: selectedPlan.heure };
+    setDB(d => ({
+      ...d,
+      ticketCounter: d.ticketCounter + 1,
+      ventes: [...d.ventes, vente],
+      planning: d.planning.map(p => p.id === selectedPlan.id ? { ...p, vendu: p.vendu + 1 } : p),
+      sessions: d.sessions.map(s => s.id === session.id ? { ...s, total: s.total + prix } : s),
+    }));
+    setPrintTicket(ticket);
+    setSel({ routeId: "", planId: "", paiement: "Espèces" });
+    setPassagerNom("");
+    setPassagerTel("");
+    show(`✅ Billet ${id} — Siège ${siegeAuto} émis !`);
+  };
+
+  if (!session) return (
+    <div style={{ padding: "0 14px" }}>
+      <Card T={T} style={{ textAlign: "center", padding: "36px 20px" }}>
+        <div style={{ fontSize: 48, marginBottom: 10 }}>🔒</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>Caisse fermée</div>
+        <div style={{ fontSize: 12, color: T.textSub }}>Allez dans «Ma Caisse» pour ouvrir votre session.</div>
+      </Card>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+      {printTicket && <PrintModal ticket={printTicket} db={db} T={T} onClose={() => setPrintTicket(null)} />}
+
+      <Card T={T} style={{ border: `1px solid ${T.gold}44` }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: T.gold, marginBottom: 14 }}>🎫 Vente de billet</div>
+
+        {/* Infos passager */}
+        <div style={{ background: T.surfaceLL, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>👤 Informations passager</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Fld label="Nom complet" T={T}>
+              <Inp value={passagerNom} onChange={e => setPassagerNom(e.target.value)} placeholder="Ex: Moussa Diop" T={T} />
+            </Fld>
+            <Fld label="Téléphone" T={T}>
+              <Inp value={passagerTel} onChange={e => setPassagerTel(e.target.value)} placeholder="+221 77…" type="tel" T={T} />
+            </Fld>
+          </div>
+        </div>
+
+        <Fld label="Route" T={T}>
+          <Sel value={sel.routeId} onChange={e => setSel({ ...sel, routeId: e.target.value, planId: "" })} T={T}>
+            <option value="">— Choisir une route —</option>
+            {db.routes.map(r => <option key={r.id} value={r.id}>{r.depart} → {r.arrivee} ({r.duree})</option>)}
+          </Sel>
+        </Fld>
+
+        {sel.routeId && (
+          <Fld label="Départ disponible" T={T}>
+            {departsDispos.length === 0
+              ? <div style={{ fontSize: 12, color: T.orange, padding: "6px 0" }}>⚠️ Aucun départ programmé sur cette route</div>
+              : <Sel value={sel.planId} onChange={e => setSel({ ...sel, planId: e.target.value })} T={T}>
+                  <option value="">— Choisir —</option>
+                  {departsDispos.map(p => {
+                    const v = db.vehicules.find(v => v.id === p.vehiculeId);
+                    const libres = (v?.capacite || 0) - p.vendu;
+                    const full = libres <= 0;
+                    return <option key={p.id} value={p.id} disabled={full}>
+                      {p.heure} · {v?.marque} {v?.modele} {full ? "🔴 COMPLET" : `(${libres} pl. libres)`}
+                    </option>;
+                  })}
+                </Sel>
+            }
+          </Fld>
+        )}
+
+        {sel.planId && (
+          <>
+            {complet ? (
+              <div style={{ background: `${T.red}18`, border: `1.5px solid ${T.red}`, borderRadius: 12, padding: "18px 14px", textAlign: "center", marginBottom: 12 }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>🚫</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: T.red }}>Départ complet</div>
+                <div style={{ fontSize: 12, color: T.textSub, marginTop: 4 }}>Toutes les {selectedVeh?.capacite} places sont vendues pour ce départ.</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ background: T.surfaceLL, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 600 }}>Véhicule</div>
+                      <div style={{ fontWeight: 700, color: T.text, fontSize: 13 }}>{selectedVeh?.marque} {selectedVeh?.modele} · {selectedVeh?.immatriculation}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 600 }}>Prix</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: T.gold }}>{prix.toLocaleString()} F</div>
+                    </div>
+                  </div>
+                  {/* Barre de remplissage */}
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
+                    <span style={{ color: T.textMuted }}>Places</span>
+                    <span style={{ fontWeight: 700, color: placesRestantes <= 3 ? T.red : placesRestantes <= 8 ? T.orange : T.green }}>
+                      {selectedPlan?.vendu}/{selectedVeh?.capacite} · {placesRestantes} restante(s)
+                    </span>
+                  </div>
+                  <div style={{ height: 5, background: T.border, borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.round((selectedPlan?.vendu / selectedVeh?.capacite) * 100)}%`, height: "100%", background: placesRestantes <= 3 ? T.red : placesRestantes <= 8 ? T.orange : T.green, borderRadius: 4, transition: "width 0.3s" }} />
+                  </div>
+                </div>
+
+                {/* Siège automatique */}
+                <div style={{ background: `${T.gold}18`, border: `1.5px solid ${T.gold}66`, borderRadius: 12, padding: "12px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>🪑 Siège attribué automatiquement</div>
+                    <div style={{ fontSize: 11, color: T.textSub }}>Prochain siège disponible</div>
+                  </div>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: T.gold, letterSpacing: 2 }}>{nextSiege}</div>
+                </div>
+
+                <Fld label="Mode de paiement" T={T}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                    {PAIEMENTS.map(p => (
+                      <button key={p} onClick={() => setSel({ ...sel, paiement: p })}
+                        style={{ padding: "7px 12px", borderRadius: 8, border: `1.5px solid ${sel.paiement === p ? T.gold : T.border}`, background: sel.paiement === p ? `${T.gold}22` : T.inputBg, color: sel.paiement === p ? T.gold : T.textSub, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </Fld>
+
+                <div style={{ background: T.surfaceLL, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Récapitulatif</div>
+                  {[["Route", `${selectedRoute?.depart} → ${selectedRoute?.arrivee}`], ["Départ", selectedPlan?.heure], ["Siège", nextSiege], ["Passager", passagerNom || "—"], ["Téléphone", passagerTel || "—"], ["Paiement", sel.paiement]].map(([l, v]) => (
+                    <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                      <span style={{ color: T.textSub }}>{l}</span><span style={{ fontWeight: 700, color: T.text }}>{v}</span>
+                    </div>
+                  ))}
+                  <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 8, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>Total</span>
+                    <span style={{ fontSize: 20, fontWeight: 900, color: T.gold }}>{prix.toLocaleString()} FCFA</span>
+                  </div>
+                </div>
+
+                <Btn onClick={vendre} color={T.gold} full>✅ Valider &amp; Imprimer</Btn>
+              </>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// FICHE DÉPART IMPRESSION
+// ═══════════════════════════════════════════════════════════
+function buildFicheHTML(plan, route, veh, ventes, compagnie) {
+  const c = compagnie;
+  const primaryColor = c.couleurPrimaire || "#B45309";
+  const logoHtml = c.logoUrl
+    ? `<img src="${c.logoUrl}" style="width:50px;height:50px;object-fit:contain;" />`
+    : `<span style="font-size:28px;">${c.logo}</span>`;
+
+  const ticketsDepart = ventes.filter(v => v.planId === plan.id);
+  const totalRecettes = ticketsDepart.reduce((s, v) => s + v.prix, 0);
+
+  const lignes = ticketsDepart.map((v, i) => `
+    <tr style="background:${i % 2 === 0 ? "#f8f8f8" : "#fff"};">
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${primaryColor};font-size:13px;">${v.siege || String(i+1).padStart(2,"0")}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${v.ticketId}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${v.passager || "—"}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#64748b;">${v.passagerTel || "—"}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;text-align:right;font-weight:700;">${v.prix.toLocaleString()} ${c.devise || "FCFA"}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#64748b;">${v.paiement}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#64748b;">${v.heure || "—"}</td>
+    </tr>
+  `).join("");
+
+  const vides = veh ? Array.from({ length: Math.max(0, veh.capacite - ticketsDepart.length) }, (_, i) => `
+    <tr style="background:${(ticketsDepart.length + i) % 2 === 0 ? "#f8f8f8" : "#fff"};">
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#94a3b8;font-size:13px;">${String(ticketsDepart.length + i + 1).padStart(2,"0")}</td>
+      <td colspan="5" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#94a3b8;font-style:italic;">— Place libre —</td>
+    </tr>
+  `).join("") : "";
+
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#111;">
+      <!-- EN-TÊTE -->
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${primaryColor};padding-bottom:14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${logoHtml}
+          <div>
+            <div style="font-size:18px;font-weight:900;color:${primaryColor};">${c.nom.toUpperCase()}</div>
+            <div style="font-size:10px;color:#64748b;">${c.adresse}${c.ville ? ", "+c.ville : ""} · ${c.tel}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Fiche de départ</div>
+          <div style="font-size:22px;font-weight:900;color:${primaryColor};">${plan.heure}</div>
+          <div style="font-size:11px;color:#64748b;">Imprimée le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+      </div>
+
+      <!-- INFO TRAJET -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:#f1f5f9;border-radius:10px;padding:12px;">
+          <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:4px;">Trajet</div>
+          <div style="font-size:14px;font-weight:800;">${route?.depart || "?"} → ${route?.arrivee || "?"}</div>
+          <div style="font-size:11px;color:#64748b;">${route?.duree || ""}</div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:10px;padding:12px;">
+          <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:4px;">Véhicule</div>
+          <div style="font-size:13px;font-weight:800;">${veh?.marque || "?"} ${veh?.modele || ""}</div>
+          <div style="font-size:11px;color:#64748b;">${veh?.immatriculation || ""} · ${veh?.type || ""}</div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:10px;padding:12px;">
+          <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;margin-bottom:4px;">Chauffeur</div>
+          <div style="font-size:13px;font-weight:800;">${veh?.chauffeur || "—"}</div>
+          <div style="font-size:11px;color:#64748b;">${ticketsDepart.length}/${veh?.capacite || "?"} places vendues</div>
+        </div>
+      </div>
+
+      <!-- STATISTIQUES -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        ${[
+          ["Passagers", ticketsDepart.length, primaryColor],
+          ["Places libres", Math.max(0, (veh?.capacite || 0) - ticketsDepart.length), "#64748b"],
+          ["Recettes", totalRecettes.toLocaleString() + " " + (c.devise || "FCFA"), "#15803d"],
+          ["Taux", Math.round(ticketsDepart.length / (veh?.capacite || 1) * 100) + "%", ticketsDepart.length >= (veh?.capacite || 1) ? "#dc2626" : "#ea580c"],
+        ].map(([l, v, col]) => `
+          <div style="background:#fff;border:1px solid #e2e8f0;border-top:3px solid ${col};border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;">${l}</div>
+            <div style="font-size:16px;font-weight:900;color:${col};margin-top:3px;">${v}</div>
+          </div>
+        `).join("")}
+      </div>
+
+      <!-- TABLEAU PASSAGERS -->
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:12px;">
+        <thead>
+          <tr style="background:${primaryColor};color:#fff;">
+            <th style="padding:10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Siège</th>
+            <th style="padding:10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">N° Ticket</th>
+            <th style="padding:10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Passager</th>
+            <th style="padding:10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Téléphone</th>
+            <th style="padding:10px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Prix</th>
+            <th style="padding:10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Paiement</th>
+            <th style="padding:10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Heure émission</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lignes}
+          ${vides}
+        </tbody>
+        <tfoot>
+          <tr style="background:#f8fafc;border-top:2px solid ${primaryColor};">
+            <td colspan="3" style="padding:10px;font-weight:800;font-size:13px;">TOTAL RECETTES</td>
+            <td style="padding:10px;text-align:right;font-weight:900;font-size:15px;color:${primaryColor};">${totalRecettes.toLocaleString()} ${c.devise || "FCFA"}</td>
+            <td colspan="2" style="padding:10px;font-size:11px;color:#64748b;">${ticketsDepart.length} billet(s)</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- SIGNATURE -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px;padding-top:20px;border-top:1px dashed #cbd5e1;">
+        <div style="text-align:center;">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:30px;">Signature Chauffeur</div>
+          <div style="border-top:1px solid #111;padding-top:4px;font-size:10px;color:#64748b;">${veh?.chauffeur || "___________________"}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:30px;">Visa Responsable Gare</div>
+          <div style="border-top:1px solid #111;padding-top:4px;font-size:10px;color:#64748b;">___________________</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLANNING DES DÉPARTS
+// ═══════════════════════════════════════════════════════════
+function PlanningSection({ db, setDB, T }) {
+  const [toast, show] = useToast();
+  const [form, setForm] = useState({ routeId: "", vehiculeId: "", heure: "" });
+  const [showForm, setShowForm] = useState(false);
+  const [ficheDepart, setFicheDepart] = useState(null);
+
+  const programmer = () => {
+    if (!form.routeId || !form.vehiculeId || !form.heure) { show("Remplissez tous les champs", "error"); return; }
+    const veh = db.vehicules.find(v => v.id === form.vehiculeId);
+    if (veh?.statut !== "En service") { show("Ce véhicule n'est pas en service !", "error"); return; }
+    setDB(d => ({ ...d, planning: [...d.planning, { id: Date.now(), routeId: parseInt(form.routeId), vehiculeId: form.vehiculeId, heure: form.heure, vendu: 0, statut: "ATTENTE" }] }));
+    setForm({ routeId: "", vehiculeId: "", heure: "" });
+    setShowForm(false);
+    show("✅ Départ programmé !");
+  };
+
+  const validerDepart = (id) => {
+    setDB(d => ({ ...d, planning: d.planning.map(p => p.id === id ? { ...p, statut: "PARTI" } : p) }));
+    show("🚌 Départ validé !");
+  };
+
+  const supprimer = (id) => {
+    setDB(d => ({ ...d, planning: d.planning.filter(p => p.id !== id) }));
+  };
+
+  const imprimerFiche = (plan) => {
+    const route = db.routes.find(r => r.id === plan.routeId);
+    const veh = db.vehicules.find(v => v.id === plan.vehiculeId);
+    const win = window.open("", "_blank", "width=780,height=900");
+    const html = buildFicheHTML(plan, route, veh, db.ventes, db.compagnie);
+    win.document.write(`<!DOCTYPE html><html><head><title>Fiche départ ${plan.heure}</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#fff;padding:20px;font-family:Arial,sans-serif;}@media print{body{padding:10px;}}</style></head><body>${html}</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  };
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: T.textSub }}>{db.planning.filter(p => p.statut === "ATTENTE").length} départ(s) en attente</span>
+        <Btn onClick={() => setShowForm(s => !s)} color={T.gold} small>+ Programmer</Btn>
+      </div>
+
+      {showForm && (
+        <Card T={T} style={{ border: `1px dashed ${T.gold}66`, marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 12 }}>Nouveau départ</div>
+          <Fld label="Route" T={T}>
+            <Sel value={form.routeId} onChange={e => setForm({ ...form, routeId: e.target.value })} T={T}>
+              <option value="">— Route —</option>
+              {db.routes.map(r => <option key={r.id} value={r.id}>{r.depart} → {r.arrivee}</option>)}
+            </Sel>
+          </Fld>
+          <Fld label="Véhicule" T={T}>
+            <Sel value={form.vehiculeId} onChange={e => setForm({ ...form, vehiculeId: e.target.value })} T={T}>
+              <option value="">— Véhicule —</option>
+              {db.vehicules.filter(v => v.statut === "En service").map(v => <option key={v.id} value={v.id}>{v.marque} {v.modele} · {v.immatriculation} ({v.capacite} pl.)</option>)}
+            </Sel>
+          </Fld>
+          <Fld label="Heure de départ" T={T}>
+            <Inp type="time" value={form.heure} onChange={e => setForm({ ...form, heure: e.target.value })} T={T} />
+          </Fld>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn onClick={programmer} color={T.gold} full>Programmer</Btn>
+            <Btn onClick={() => setShowForm(false)} color={T.textMuted} outline>Annuler</Btn>
+          </div>
+        </Card>
+      )}
+
+      {db.planning.length === 0 && (
+        <Card T={T} style={{ textAlign: "center", padding: "30px 0" }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+          <div style={{ color: T.textMuted, fontSize: 12 }}>Aucun départ programmé</div>
+        </Card>
+      )}
+
+      {db.planning.slice().sort((a, b) => a.heure.localeCompare(b.heure)).map(p => {
+        const route = db.routes.find(r => r.id === p.routeId);
+        const veh = db.vehicules.find(v => v.id === p.vehiculeId);
+        const pct = veh ? Math.round(p.vendu / veh.capacite * 100) : 0;
+        return (
+          <Card key={p.id} T={T} border={p.statut === "ATTENTE" ? T.blue : T.textMuted} style={{ opacity: p.statut === "PARTI" ? 0.55 : 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: T.gold }}>{p.heure}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{route?.depart} → {route?.arrivee}</div>
+              </div>
+              <StatutBadge s={p.statut} />
+            </div>
+            <div style={{ fontSize: 11, color: T.textSub, marginBottom: 8 }}>
+              🚌 {veh?.marque} {veh?.modele} · {veh?.immatriculation} · 👤 {veh?.chauffeur}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
+              <span style={{ color: T.textMuted }}>Places vendues</span>
+              <span style={{ fontWeight: 700, color: T.text }}>{p.vendu}/{veh?.capacite || "?"} ({pct}%)</span>
+            </div>
+            <div style={{ height: 5, background: T.border, borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? T.red : pct > 70 ? T.orange : T.green, borderRadius: 4 }} />
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {p.statut === "ATTENTE" && (
+                <>
+                  <Btn onClick={() => imprimerFiche(p)} color={T.blue} small>🖨️ Fiche départ</Btn>
+                  <Btn onClick={() => validerDepart(p.id)} color={T.green} small>🚌 Valider départ</Btn>
+                </>
+              )}
+              {p.statut === "PARTI" && <Btn onClick={() => imprimerFiche(p)} color={T.textMuted} outline small>🖨️ Fiche</Btn>}
+              <Btn onClick={() => supprimer(p.id)} color={T.red} outline small>🗑</Btn>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECETTES
+// ═══════════════════════════════════════════════════════════
+function RecettesSection({ db, setDB, T }) {
+  const totalGlobal = db.ventes.reduce((s, v) => s + v.prix, 0);
+  const validerSession = (id) => {
+    setDB(d => ({ ...d, sessions: d.sessions.map(s => s.id === id ? { ...s, statut: "VALIDEE" } : s) }));
+  };
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <Card T={T} style={{ borderTop: `2px solid ${T.gold}` }}>
+          <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", fontWeight: 700 }}>Total recettes</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: T.gold, marginTop: 4 }}>{totalGlobal.toLocaleString()} F</div>
+        </Card>
+        <Card T={T} style={{ borderTop: `2px solid ${T.blue}` }}>
+          <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", fontWeight: 700 }}>Billets vendus</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: T.blue, marginTop: 4 }}>{db.ventes.length}</div>
+        </Card>
+      </div>
+
+      <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Sessions de caisse</div>
+      {db.sessions.length === 0 && <Card T={T} style={{ textAlign: "center", padding: 24 }}><div style={{ color: T.textMuted }}>Aucune session enregistrée</div></Card>}
+      {db.sessions.slice().reverse().map(s => (
+        <Card key={s.id} T={T} border={s.statut === "OUVERTE" ? T.green : s.statut === "FERMEE" ? T.orange : T.purple}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+            <div>
+              <div style={{ fontWeight: 800, color: T.text }}>{s.caissier}</div>
+              <div style={{ fontSize: 11, color: T.textSub }}>Ouverture : {s.ouverture}</div>
+              {s.cloture && <div style={{ fontSize: 11, color: T.textSub }}>Clôture : {s.cloture}</div>}
+            </div>
+            <StatutBadge s={s.statut} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: T.gold }}>{s.total.toLocaleString()} FCFA</div>
+          {s.statut === "FERMEE" && (
+            <div style={{ marginTop: 10 }}>
+              <Btn onClick={() => validerSession(s.id)} color={T.purple} small>✅ Valider cette session</Btn>
+            </div>
+          )}
+        </Card>
+      ))}
+
+      <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, margin: "14px 0 10px" }}>Toutes les ventes</div>
+      {db.ventes.length === 0 && <Card T={T} style={{ textAlign: "center", padding: 20 }}><div style={{ color: T.textMuted, fontSize: 12 }}>Aucune vente</div></Card>}
+      {db.ventes.slice().reverse().map(v => (
+        <div key={v.id} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${T.border}`, fontSize: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, color: T.text }}>{v.ticketId}</div>
+            <div style={{ color: T.textSub }}>{v.dest} · {v.caissier}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 700, color: T.gold }}>{v.prix.toLocaleString()} F</div>
+            <div style={{ color: T.textMuted, fontSize: 10 }}>{v.paiement}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// VÉHICULES CRUD
+// ═══════════════════════════════════════════════════════════
+const emptyVeh = { type: "Bus", marque: "", modele: "", immatriculation: "", capacite: "", annee: new Date().getFullYear(), chauffeur: "", statut: "En service", couleur: "#2563EB", kilometrage: "" };
+
+function VehiculeForm({ initial, onSave, onCancel, T }) {
+  const [f, setF] = useState(initial ? { ...initial } : emptyVeh);
+  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <Fld label="Type" T={T}><Sel value={f.type} onChange={e => s("type", e.target.value)} T={T}>{VEHICULE_TYPES.map(t => <option key={t}>{t}</option>)}</Sel></Fld>
+        <Fld label="Statut" T={T}><Sel value={f.statut} onChange={e => s("statut", e.target.value)} T={T}>{STATUTS_VEH.map(t => <option key={t}>{t}</option>)}</Sel></Fld>
+      </div>
+      <Fld label="Marque" T={T}><Inp value={f.marque} onChange={e => s("marque", e.target.value)} placeholder="Mercedes-Benz" T={T} /></Fld>
+      <Fld label="Modèle" T={T}><Inp value={f.modele} onChange={e => s("modele", e.target.value)} placeholder="O500" T={T} /></Fld>
+      <Fld label="Immatriculation" T={T}><Inp value={f.immatriculation} onChange={e => s("immatriculation", e.target.value.toUpperCase())} placeholder="DK-0000-AB" T={T} /></Fld>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <Fld label="Capacité (sièges)" T={T}><Inp type="number" value={f.capacite} onChange={e => s("capacite", e.target.value)} placeholder="40" T={T} /></Fld>
+        <Fld label="Année" T={T}><Inp type="number" value={f.annee} onChange={e => s("annee", e.target.value)} placeholder="2022" T={T} /></Fld>
+      </div>
+      <Fld label="Kilométrage" T={T}><Inp type="number" value={f.kilometrage} onChange={e => s("kilometrage", e.target.value)} placeholder="128000" T={T} /></Fld>
+      <Fld label="Chauffeur assigné" T={T}><Inp value={f.chauffeur} onChange={e => s("chauffeur", e.target.value)} placeholder="Nom du chauffeur" T={T} /></Fld>
+      <Fld label="Couleur" T={T}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <input type="color" value={f.couleur} onChange={e => s("couleur", e.target.value)} style={{ width: 44, height: 36, border: `1px solid ${T.border}`, borderRadius: 8, background: T.inputBg, cursor: "pointer", padding: 2 }} />
+          <span style={{ fontSize: 12, color: T.textSub }}>{f.couleur}</span>
+        </div>
+      </Fld>
+      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+        <Btn onClick={() => onSave(f)} color={T.gold} full>{initial?.id ? "Enregistrer" : "Ajouter"}</Btn>
+        <Btn onClick={onCancel} color={T.textMuted} outline>Annuler</Btn>
+      </div>
+    </div>
+  );
+}
+
+function VehiculesSection({ db, setDB, T }) {
+  const [modal, setModal] = useState(null);
+  const [toast, show] = useToast();
+  const [search, setSearch] = useState("");
+  const [filtre, setFiltre] = useState("Tous");
+
+  const save = (form) => {
+    if (!form.marque || !form.immatriculation || !form.capacite) { show("Marque, immat. et capacité requis", "error"); return; }
+    if (modal.type === "add") {
+      setDB(d => ({ ...d, vehicules: [...d.vehicules, { ...form, capacite: parseInt(form.capacite), kilometrage: parseInt(form.kilometrage) || 0, id: `V${String(d.vehicules.length + 1).padStart(3, "0")}` }] }));
+      show("✅ Véhicule ajouté !");
+    } else {
+      setDB(d => ({ ...d, vehicules: d.vehicules.map(v => v.id === modal.veh.id ? { ...form, id: v.id, capacite: parseInt(form.capacite), kilometrage: parseInt(form.kilometrage) || 0 } : v) }));
+      show("✅ Mis à jour !");
+    }
+    setModal(null);
+  };
+
+  const del = (id) => { setDB(d => ({ ...d, vehicules: d.vehicules.filter(v => v.id !== id) })); setModal(null); show("🗑 Supprimé"); };
+
+  const liste = db.vehicules.filter(v => (filtre === "Tous" || v.statut === filtre) && (!search || `${v.marque} ${v.modele} ${v.immatriculation} ${v.chauffeur}`.toLowerCase().includes(search.toLowerCase())));
+  const stats = { total: db.vehicules.length, service: db.vehicules.filter(v => v.statut === "En service").length, maint: db.vehicules.filter(v => v.statut !== "En service" && v.statut !== "Hors service").length, hs: db.vehicules.filter(v => v.statut === "Hors service").length };
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 12 }}>
+        {[["Total", stats.total, T.gold], ["Service", stats.service, T.green], ["Maint.", stats.maint, T.orange], ["HS", stats.hs, T.red]].map(([l, v, c]) => (
+          <div key={l} style={{ background: T.surface, borderRadius: 10, padding: "10px 6px", textAlign: "center", borderTop: `2px solid ${c}`, border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: c }}>{v}</div>
+            <div style={{ fontSize: 9, color: T.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, position: "relative" }}>
+          <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…"
+            style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px 10px 8px 28px", color: T.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+        </div>
+        <Btn onClick={() => setModal({ type: "add" })} color={T.gold} small>+ Nouveau</Btn>
+      </div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 10 }}>
+        {["Tous", ...STATUTS_VEH].map(s => (
+          <button key={s} onClick={() => setFiltre(s)} style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", background: filtre === s ? T.gold : T.surfaceLL, color: filtre === s ? "#000" : T.textSub }}>{s}</button>
+        ))}
+      </div>
+
+      {liste.map(v => {
+        return (
+          <Card key={v.id} T={T} style={{ overflow: "hidden", padding: 0 }}>
+            <div style={{ background: `${v.couleur}18`, padding: "12px 14px", borderBottom: `1px solid ${T.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: v.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                    {v.type === "Taxi" ? "🚕" : v.type === "Camion" ? "🚛" : "🚌"}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: T.text }}>{v.marque} {v.modele}</div>
+                    <div style={{ fontSize: 11, color: T.textSub, fontWeight: 600 }}>{v.immatriculation}</div>
+                  </div>
+                </div>
+                <StatutBadge s={v.statut} />
+              </div>
+            </div>
+            <div style={{ padding: "10px 14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 10 }}>
+                {[["Type", v.type], ["Sièges", v.capacite], ["Année", v.annee], ["Km", v.kilometrage ? `${Number(v.kilometrage).toLocaleString()}` : "—"], ["ID", v.id], ["Couleur", <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", background: v.couleur, verticalAlign: "middle" }} />]].map(([l, val]) => (
+                  <div key={l} style={{ background: T.surfaceLL, borderRadius: 8, padding: "6px 8px" }}>
+                    <div style={{ fontSize: 9, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 2 }}>{l}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: T.surfaceLL, borderRadius: 8, padding: "8px 10px", display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+                <span>👤</span>
+                <div>
+                  <div style={{ fontSize: 9, color: T.textMuted, fontWeight: 700, textTransform: "uppercase" }}>Chauffeur</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{v.chauffeur || "Non assigné"}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 7 }}>
+                <Btn onClick={() => setModal({ type: "view", veh: v })} color={T.blue} outline small>👁 Détails</Btn>
+                <Btn onClick={() => setModal({ type: "edit", veh: v })} color={T.gold} outline small>✏️ Modifier</Btn>
+                <Btn onClick={() => setModal({ type: "del", veh: v })} color={T.red} outline small>🗑 Suppr.</Btn>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+
+      {modal?.type === "add" && <Modal title="➕ Nouveau véhicule" onClose={() => setModal(null)} T={T}><VehiculeForm onSave={save} onCancel={() => setModal(null)} T={T} /></Modal>}
+      {modal?.type === "edit" && <Modal title="✏️ Modifier" onClose={() => setModal(null)} T={T}><VehiculeForm initial={modal.veh} onSave={save} onCancel={() => setModal(null)} T={T} /></Modal>}
+      {modal?.type === "view" && (
+        <Modal title={`${modal.veh.marque} ${modal.veh.modele}`} onClose={() => setModal(null)} T={T}>
+          <div style={{ background: `${modal.veh.couleur}18`, borderRadius: 12, padding: 14, marginBottom: 14, display: "flex", gap: 14, alignItems: "center" }}>
+            <div style={{ width: 54, height: 54, borderRadius: 14, background: modal.veh.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{modal.veh.type === "Taxi" ? "🚕" : "🚌"}</div>
+            <div><div style={{ fontSize: 16, fontWeight: 900, color: T.text }}>{modal.veh.marque} {modal.veh.modele}</div><div style={{ fontSize: 12, color: T.textSub }}>{modal.veh.immatriculation}</div><StatutBadge s={modal.veh.statut} /></div>
+          </div>
+          {[["ID", modal.veh.id], ["Type", modal.veh.type], ["Marque", modal.veh.marque], ["Modèle", modal.veh.modele], ["Immatriculation", modal.veh.immatriculation], ["Capacité", `${modal.veh.capacite} sièges`], ["Année", modal.veh.annee], ["Kilométrage", modal.veh.kilometrage ? `${Number(modal.veh.kilometrage).toLocaleString()} km` : "—"], ["Chauffeur", modal.veh.chauffeur || "Non assigné"], ["Statut", modal.veh.statut]].map(([l, v]) => (
+            <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${T.border}`, fontSize: 12 }}>
+              <span style={{ color: T.textSub }}>{l}</span><span style={{ fontWeight: 700, color: T.text }}>{v}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <Btn onClick={() => setModal({ type: "edit", veh: modal.veh })} color={T.gold} full>✏️ Modifier</Btn>
+            <Btn onClick={() => setModal(null)} color={T.textMuted} outline>Fermer</Btn>
+          </div>
+        </Modal>
+      )}
+      {modal?.type === "del" && (
+        <Modal title="Confirmer la suppression" onClose={() => setModal(null)} T={T}>
+          <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>{modal.veh.marque} {modal.veh.modele}</div>
+            <div style={{ fontSize: 12, color: T.textSub, marginBottom: 20 }}>Cette action est irréversible.</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Btn onClick={() => del(modal.veh.id)} color={T.red} full>Supprimer</Btn>
+              <Btn onClick={() => setModal(null)} color={T.textMuted} outline>Annuler</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFIGURATION COMPLÈTE
+// ═══════════════════════════════════════════════════════════
+function ConfigSection({ db, setDB, T, binId, onActivateCloud }) {
+  const [sec, setSec] = useState("vehicules");
+  const [toast, show] = useToast();
+  const [editCo, setEditCo] = useState({ ...db.compagnie });
+  const [newRoute, setNewRoute] = useState({ depart: "", arrivee: "", duree: "" });
+  const [editRoute, setEditRoute] = useState(null);
+  const [newUser, setNewUser] = useState({ nom: "", login: "", pin: "", role: "caissier", modules: ["caisse", "vente", "planning"] });
+  const [editUser, setEditUser] = useState(null);
+  const [apiKey, setApiKey] = useState(getJsonbinKey());
+  const [keySaved, setKeySaved] = useState(false);
+
+  const tabs = [
+    { id: "vehicules", label: "🚌 Véhicules" }, { id: "compagnie", label: "🏢 Compagnie" },
+    { id: "routes", label: "🗺️ Routes" }, { id: "tickets", label: "🎫 Tickets" }, { id: "users", label: "👤 Utilisateurs" },
+    { id: "sync", label: "☁️ Synchronisation" },
+  ];
+
+  const saveUser = (form) => {
+    if (!form.nom || !form.login || form.pin.length !== 4) { show("Nom, login et PIN 4 chiffres requis", "error"); return; }
+    if (editUser) {
+      setDB(d => ({ ...d, users: d.users.map(u => u.id === editUser.id ? { ...u, ...form } : u) }));
+      show("✅ Utilisateur mis à jour !");
+      setEditUser(null);
+    } else {
+      if (db.users.find(u => u.login === form.login)) { show("Ce login existe déjà", "error"); return; }
+      setDB(d => ({ ...d, users: [...d.users, { ...form, id: `U${String(d.users.length + 1).padStart(3, "0")}` }] }));
+      show("✅ Utilisateur créé !");
+    }
+    setNewUser({ nom: "", login: "", pin: "", role: "caissier", modules: ["caisse", "vente", "planning"] });
+  };
+
+  const userForm = editUser || newUser;
+  const setUF = (k, v) => editUser ? setEditUser(u => ({ ...u, [k]: v })) : setNewUser(u => ({ ...u, [k]: v }));
+  const toggleMod = (id) => {
+    const mods = userForm.modules.includes(id) ? userForm.modules.filter(m => m !== id) : [...userForm.modules, id];
+    setUF("modules", mods);
+  };
+
+  return (
+    <div>
+      <Toast msg={toast.msg} type={toast.type} />
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "0 14px 12px", borderBottom: `1px solid ${T.border}` }}>
+        {tabs.map(t => <button key={t.id} onClick={() => setSec(t.id)} style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 20, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", background: sec === t.id ? T.gold : T.surfaceLL, color: sec === t.id ? "#000" : T.textSub }}>{t.label}</button>)}
+      </div>
+
+      <div style={{ paddingTop: 14 }}>
+        {sec === "vehicules" && <VehiculesSection db={db} setDB={setDB} T={T} />}
+
+        {sec === "compagnie" && (
+          <div style={{ padding: "0 14px" }}>
+            {/* Aperçu compagnie */}
+            <Card T={T} style={{ background: `linear-gradient(135deg, ${editCo.couleurSecondaire || T.surfaceL} 0%, ${T.surface} 100%)`, marginBottom: 14, overflow: "hidden" }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <div style={{ width: 64, height: 64, borderRadius: 14, background: editCo.couleurPrimaire || T.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, overflow: "hidden", flexShrink: 0, border: `2px solid ${T.border}` }}>
+                  {editCo.logoUrl ? <img src={editCo.logoUrl} style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => e.target.style.display = "none"} /> : editCo.logo}
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: editCo.couleurPrimaire || T.gold }}>{editCo.nom || "Nom compagnie"}</div>
+                  <div style={{ fontSize: 11, color: T.textSub, fontStyle: "italic" }}>{editCo.slogan || "Slogan"}</div>
+                  <div style={{ fontSize: 10, color: T.textMuted, marginTop: 3 }}>{editCo.ville}{editCo.pays ? `, ${editCo.pays}` : ""}</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card T={T}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 14 }}>🏢 Identité</div>
+              <Fld label="Nom de la compagnie" T={T}><Inp value={editCo.nom} onChange={e => setEditCo({ ...editCo, nom: e.target.value })} placeholder="TransitPro" T={T} /></Fld>
+              <Fld label="Slogan / devise" T={T}><Inp value={editCo.slogan} onChange={e => setEditCo({ ...editCo, slogan: e.target.value })} placeholder="Votre mobilité, notre mission" T={T} /></Fld>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Fld label="Fondateur" T={T}><Inp value={editCo.fondateur || ""} onChange={e => setEditCo({ ...editCo, fondateur: e.target.value })} placeholder="Nom fondateur" T={T} /></Fld>
+                <Fld label="Année création" T={T}><Inp value={editCo.anneeCreation || ""} onChange={e => setEditCo({ ...editCo, anneeCreation: e.target.value })} placeholder="2010" T={T} /></Fld>
+              </div>
+            </Card>
+
+            <Card T={T}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 14 }}>📞 Coordonnées</div>
+              <Fld label="Téléphone principal" T={T}><Inp value={editCo.tel} onChange={e => setEditCo({ ...editCo, tel: e.target.value })} placeholder="+221 33 000 00 00" T={T} /></Fld>
+              <Fld label="Téléphone secondaire" T={T}><Inp value={editCo.tel2} onChange={e => setEditCo({ ...editCo, tel2: e.target.value })} placeholder="+221 77 000 00 00" T={T} /></Fld>
+              <Fld label="Email" T={T}><Inp value={editCo.email} onChange={e => setEditCo({ ...editCo, email: e.target.value })} placeholder="info@compagnie.com" T={T} /></Fld>
+              <Fld label="Site web" T={T}><Inp value={editCo.siteWeb} onChange={e => setEditCo({ ...editCo, siteWeb: e.target.value })} placeholder="www.compagnie.com" T={T} /></Fld>
+              <Fld label="Adresse" T={T}><Inp value={editCo.adresse} onChange={e => setEditCo({ ...editCo, adresse: e.target.value })} placeholder="Gare Routière, Centre ville" T={T} /></Fld>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Fld label="Ville" T={T}><Inp value={editCo.ville} onChange={e => setEditCo({ ...editCo, ville: e.target.value })} placeholder="Dakar" T={T} /></Fld>
+                <Fld label="Pays" T={T}><Inp value={editCo.pays} onChange={e => setEditCo({ ...editCo, pays: e.target.value })} placeholder="Sénégal" T={T} /></Fld>
+              </div>
+            </Card>
+
+            <Card T={T}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 14 }}>📋 Informations légales</div>
+              <Fld label="RCCM" T={T}><Inp value={editCo.rccm} onChange={e => setEditCo({ ...editCo, rccm: e.target.value })} placeholder="SN-DKR-2010-B-12345" T={T} /></Fld>
+              <Fld label="NINEA" T={T}><Inp value={editCo.ninea} onChange={e => setEditCo({ ...editCo, ninea: e.target.value })} placeholder="00000000-0" T={T} /></Fld>
+              <Fld label="N° Agrément transport" T={T}><Inp value={editCo.agrément || ""} onChange={e => setEditCo({ ...editCo, agrément: e.target.value })} placeholder="AGR-MINT-2010-001" T={T} /></Fld>
+              <Fld label="Devise monétaire" T={T}>
+                <Sel value={editCo.devise || "FCFA"} onChange={e => setEditCo({ ...editCo, devise: e.target.value })} T={T}>
+                  {["FCFA","XOF","EUR","USD","MAD","GNF","XAF"].map(d => <option key={d}>{d}</option>)}
+                </Sel>
+              </Fld>
+            </Card>
+
+            <Card T={T}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 14 }}>🎨 Logo & Couleurs</div>
+              <Fld label="Logo emoji (si pas d'image)" T={T}><Inp value={editCo.logo} onChange={e => setEditCo({ ...editCo, logo: e.target.value })} placeholder="🚌" T={T} /></Fld>
+              <Fld label="Uploader un logo (image locale)" T={T}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: T.inputBg, border: `1.5px dashed ${T.gold}`, borderRadius: 8, padding: "10px 14px" }}>
+                  <span style={{ fontSize: 20 }}>🖼️</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T.gold }}>Choisir une image</div>
+                    <div style={{ fontSize: 10, color: T.textMuted }}>PNG, JPG, SVG — max 2 Mo</div>
+                  </div>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) { alert("Fichier trop lourd (max 2 Mo)"); return; }
+                    const reader = new FileReader();
+                    reader.onload = ev => setEditCo({ ...editCo, logoUrl: ev.target.result });
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+              </Fld>
+              <Fld label="— ou — URL du logo (image web)" T={T}><Inp value={editCo.logoUrl && !editCo.logoUrl.startsWith("data:") ? editCo.logoUrl : ""} onChange={e => setEditCo({ ...editCo, logoUrl: e.target.value })} placeholder="https://monsite.com/logo.png" T={T} /></Fld>
+              {editCo.logoUrl && (
+                <div style={{ background: T.surfaceLL, borderRadius: 10, padding: 12, marginBottom: 10, textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 6 }}>APERÇU LOGO</div>
+                  <img src={editCo.logoUrl} style={{ maxWidth: 120, maxHeight: 80, objectFit: "contain", borderRadius: 8 }} onError={e => { e.target.style.display = "none"; }} />
+                  <div style={{ marginTop: 6 }}>
+                    <button onClick={() => setEditCo({ ...editCo, logoUrl: "" })} style={{ background: `${T.red}18`, color: T.red, border: "none", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✕ Supprimer le logo</button>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <Fld label="Couleur principale" T={T}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input type="color" value={editCo.couleurPrimaire || "#E8A020"} onChange={e => setEditCo({ ...editCo, couleurPrimaire: e.target.value })} style={{ width: 44, height: 36, border: `1px solid ${T.border}`, borderRadius: 8, background: T.inputBg, cursor: "pointer", padding: 2 }} />
+                    <span style={{ fontSize: 11, color: T.textSub }}>{editCo.couleurPrimaire || "#E8A020"}</span>
+                  </div>
+                </Fld>
+                <Fld label="Couleur secondaire" T={T}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input type="color" value={editCo.couleurSecondaire || "#243B55"} onChange={e => setEditCo({ ...editCo, couleurSecondaire: e.target.value })} style={{ width: 44, height: 36, border: `1px solid ${T.border}`, borderRadius: 8, background: T.inputBg, cursor: "pointer", padding: 2 }} />
+                    <span style={{ fontSize: 11, color: T.textSub }}>{editCo.couleurSecondaire || "#243B55"}</span>
+                  </div>
+                </Fld>
+              </div>
+            </Card>
+
+            <Btn onClick={() => { setDB(d => ({ ...d, compagnie: editCo })); show("✅ Compagnie mise à jour !"); }} color={T.gold} full>💾 Enregistrer toutes les modifications</Btn>
+          </div>
+        )}
+
+        {sec === "routes" && (
+          <div style={{ padding: "0 14px" }}>
+            {db.routes.map(r => (
+              <Card key={r.id} T={T}>
+                {editRoute?.id === r.id ? (
+                  <div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                      <Fld label="Départ" T={T}><Inp value={editRoute.depart} onChange={e => setEditRoute({ ...editRoute, depart: e.target.value })} T={T} /></Fld>
+                      <Fld label="Arrivée" T={T}><Inp value={editRoute.arrivee} onChange={e => setEditRoute({ ...editRoute, arrivee: e.target.value })} T={T} /></Fld>
+                    </div>
+                    <Fld label="Durée" T={T}><Inp value={editRoute.duree} onChange={e => setEditRoute({ ...editRoute, duree: e.target.value })} placeholder="1h30" T={T} /></Fld>
+                    <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Tarifs FCFA par type</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                      {VEHICULE_TYPES.map(type => (
+                        <div key={type} style={{ background: T.surfaceLL, borderRadius: 8, padding: "6px 8px" }}>
+                          <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 3 }}>{type}</div>
+                          <input type="number" value={editRoute.prix?.[type] || ""} onChange={e => setEditRoute({ ...editRoute, prix: { ...editRoute.prix, [type]: parseInt(e.target.value) || 0 } })}
+                            style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Btn onClick={() => { setDB(d => ({ ...d, routes: d.routes.map(ro => ro.id === r.id ? editRoute : ro) })); setEditRoute(null); show("✅ Route mise à jour !"); }} color={T.gold} full>Enregistrer</Btn>
+                      <Btn onClick={() => setEditRoute(null)} color={T.textMuted} outline>Annuler</Btn>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: T.text }}>{r.depart} → {r.arrivee}</span>
+                      <span style={{ background: `${T.blue}22`, color: T.blue, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>{r.duree}</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                      {Object.entries(r.prix || {}).map(([type, px]) => <span key={type} style={{ background: T.surfaceLL, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: T.textSub }}>{type}: <strong style={{ color: T.text }}>{px?.toLocaleString()} F</strong></span>)}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Btn onClick={() => setEditRoute({ ...r, prix: { ...r.prix } })} color={T.gold} outline small>✏️ Modifier</Btn>
+                      <Btn onClick={() => { setDB(d => ({ ...d, routes: d.routes.filter(ro => ro.id !== r.id) })); show("🗑 Route supprimée"); }} color={T.red} outline small>🗑 Suppr.</Btn>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ))}
+            <Card T={T} style={{ border: `1px dashed ${T.gold}66` }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 12 }}>+ Nouvelle route</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Fld label="Départ" T={T}><Inp value={newRoute.depart} onChange={e => setNewRoute({ ...newRoute, depart: e.target.value })} placeholder="Dakar" T={T} /></Fld>
+                <Fld label="Arrivée" T={T}><Inp value={newRoute.arrivee} onChange={e => setNewRoute({ ...newRoute, arrivee: e.target.value })} placeholder="Thiès" T={T} /></Fld>
+              </div>
+              <Fld label="Durée" T={T}><Inp value={newRoute.duree} onChange={e => setNewRoute({ ...newRoute, duree: e.target.value })} placeholder="1h30" T={T} /></Fld>
+              <Btn onClick={() => {
+                if (!newRoute.depart || !newRoute.arrivee) return;
+                const prix = {}; VEHICULE_TYPES.forEach(v => prix[v] = 0);
+                setDB(d => ({ ...d, routes: [...d.routes, { id: Date.now(), ...newRoute, prix }] }));
+                setNewRoute({ depart: "", arrivee: "", duree: "" }); show("✅ Route ajoutée !");
+              }} color={T.gold} full>Ajouter la route</Btn>
+            </Card>
+          </div>
+        )}
+
+        {sec === "tickets" && (
+          <div style={{ padding: "0 14px" }}>
+            <Card T={T}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: T.gold, marginBottom: 14 }}>🎫 Numérotation</div>
+              <Fld label="Préfixe" T={T}><Inp value={db.ticketPrefix} onChange={e => setDB(d => ({ ...d, ticketPrefix: e.target.value.toUpperCase() }))} placeholder="TP" T={T} /></Fld>
+              <Fld label="Prochain numéro" T={T}><Inp type="number" value={db.ticketCounter} onChange={e => setDB(d => ({ ...d, ticketCounter: parseInt(e.target.value) || 1 }))} T={T} /></Fld>
+              <div style={{ background: T.surfaceLL, borderRadius: 10, padding: 14, textAlign: "center", marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 4 }}>PROCHAIN TICKET ÉMIS</div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: T.gold, letterSpacing: 3 }}>{db.ticketPrefix}-{String(db.ticketCounter).padStart(3, "0")}</div>
+              </div>
+              <Btn onClick={() => show("✅ Enregistré !")} color={T.gold} full>Enregistrer</Btn>
+            </Card>
+          </div>
+        )}
+
+        {sec === "users" && (
+          <div style={{ padding: "0 14px" }}>
+            {db.users.map(u => (
+              <Card key={u.id} T={T} border={u.role === "admin" ? T.gold : T.blue}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: u.role === "admin" ? T.gold : T.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: "#fff" }}>{u.nom[0]}</div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: T.text }}>{u.nom}</div>
+                      <div style={{ fontSize: 11, color: T.textSub }}>@{u.login} · PIN : {u.pin}</div>
+                    </div>
+                  </div>
+                  <span style={{ background: u.role === "admin" ? `${T.gold}22` : `${T.blue}22`, color: u.role === "admin" ? T.gold : T.blue, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>{u.role}</span>
+                </div>
+                <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 8 }}>Modules : {u.modules.join(", ")}</div>
+                <div style={{ display: "flex", gap: 7 }}>
+                  <Btn onClick={() => setEditUser({ ...u })} color={T.gold} outline small>✏️ Modifier</Btn>
+                  {u.role !== "admin" && <Btn onClick={() => { setDB(d => ({ ...d, users: d.users.filter(x => x.id !== u.id) })); show("🗑 Supprimé"); }} color={T.red} outline small>🗑</Btn>}
+                </div>
+              </Card>
+            ))}
+
+            {editUser && (
+              <Card T={T} style={{ border: `1px solid ${T.gold}55` }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 12 }}>✏️ Modifier {editUser.nom}</div>
+                <Fld label="Nom complet" T={T}><Inp value={editUser.nom} onChange={e => setUF("nom", e.target.value)} T={T} /></Fld>
+                <Fld label="Login" T={T}><Inp value={editUser.login} onChange={e => setUF("login", e.target.value)} T={T} /></Fld>
+                <Fld label="PIN (4 chiffres)" T={T}><Inp type="password" value={editUser.pin} onChange={e => setUF("pin", e.target.value)} T={T} /></Fld>
+                <Fld label="Rôle" T={T}><Sel value={editUser.role} onChange={e => setUF("role", e.target.value)} T={T}><option value="caissier">Caissier</option><option value="admin">Admin</option></Sel></Fld>
+                <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Modules accessibles</div>
+                {ALL_MODULES.map(m => <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer", fontSize: 13, color: T.text }}><input type="checkbox" checked={editUser.modules.includes(m.id)} onChange={() => toggleMod(m.id)} />{m.icon} {m.label}</label>)}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <Btn onClick={() => saveUser(editUser)} color={T.gold} full>Enregistrer</Btn>
+                  <Btn onClick={() => setEditUser(null)} color={T.textMuted} outline>Annuler</Btn>
+                </div>
+              </Card>
+            )}
+
+            {!editUser && (
+              <Card T={T} style={{ border: `1px dashed ${T.gold}66` }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: T.gold, marginBottom: 12 }}>+ Nouvel utilisateur</div>
+                <Fld label="Nom complet" T={T}><Inp value={newUser.nom} onChange={e => setUF("nom", e.target.value)} placeholder="Prénom Nom" T={T} /></Fld>
+                <Fld label="Login" T={T}><Inp value={newUser.login} onChange={e => setUF("login", e.target.value)} placeholder="prenom.nom" T={T} /></Fld>
+                <Fld label="PIN (4 chiffres)" T={T}><Inp type="password" value={newUser.pin} onChange={e => setUF("pin", e.target.value)} placeholder="••••" T={T} /></Fld>
+                <Fld label="Rôle" T={T}><Sel value={newUser.role} onChange={e => setUF("role", e.target.value)} T={T}><option value="caissier">Caissier</option><option value="admin">Admin</option></Sel></Fld>
+                <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Modules accessibles</div>
+                {ALL_MODULES.map(m => <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer", fontSize: 13, color: T.text }}><input type="checkbox" checked={newUser.modules.includes(m.id)} onChange={() => toggleMod(m.id)} />{m.icon} {m.label}</label>)}
+                <div style={{ marginTop: 10 }}>
+                  <Btn onClick={() => saveUser(newUser)} color={T.gold} full>Créer l'utilisateur</Btn>
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {sec === "sync" && (
+          <div style={{ padding: "0 14px" }}>
+            <Card T={T} border={T.blue}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.blue, marginBottom: 6 }}>☁️ Clé API JSONBin.io</div>
+              <div style={{ fontSize: 11, color: T.textSub, marginBottom: 14, lineHeight: 1.5 }}>
+                Cette clé permet à l'application de sauvegarder et synchroniser vos données dans le cloud. Créez un compte gratuit sur <strong>jsonbin.io</strong>, puis copiez votre <strong>X-Master-Key</strong> depuis la page "API Keys".
+              </div>
+              <Fld label="X-Master-Key" T={T}>
+                <input type="password" value={apiKey} onChange={e => { setApiKey(e.target.value); setKeySaved(false); }} placeholder="$2a$10$..."
+                  style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", color: T.text, fontSize: 12, outline: "none", boxSizing: "border-box", fontFamily: "monospace" }} />
+              </Fld>
+              <Btn onClick={async () => {
+                setJsonbinKey(apiKey);
+                setKeySaved(true);
+                show("✅ Clé API enregistrée !");
+                if (!binId && apiKey.trim() && onActivateCloud) {
+                  show("☁️ Activation de la synchronisation...");
+                  await onActivateCloud();
+                }
+              }} color={T.blue} full>
+                {keySaved ? "✅ Clé enregistrée" : "💾 Enregistrer la clé"}
+              </Btn>
+              <div style={{ marginTop: 12, padding: "10px 12px", background: getJsonbinKey() ? `${T.green}18` : `${T.red}18`, borderRadius: 8, fontSize: 11, color: getJsonbinKey() ? T.green : T.red, fontWeight: 700 }}>
+                {getJsonbinKey() ? "✅ Synchronisation cloud active" : "⚠️ Aucune clé configurée — la sync cloud est désactivée"}
+              </div>
+              {!binId && getJsonbinKey() && (
+                <div style={{ marginTop: 8, padding: "10px 12px", background: `${T.orange}18`, borderRadius: 8, fontSize: 11, color: T.orange, fontWeight: 700 }}>
+                  ⏳ Cette compagnie n'a pas encore d'ID cloud. Réenregistrez la clé pour créer le bin maintenant.
+                </div>
+              )}
+              {binId && (
+                <div style={{ marginTop: 12, padding: 12, background: T.surfaceL, borderRadius: 10, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>ID Cloud de cette compagnie</div>
+                  <div style={{ fontSize: 11, fontFamily: "monospace", color: T.gold, wordBreak: "break-all" }}>{binId}</div>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// MODULE BAGAGES
+// ═══════════════════════════════════════════════════════════
+
+function buildBagageReceiptHTML(enreg, compagnie) {
+  const c = compagnie;
+  const primaryColor = c.couleurPrimaire || "#0891B2";
+  const logoHtml = c.logoUrl
+    ? `<img src="${c.logoUrl}" style="width:68px;height:68px;object-fit:contain;margin-bottom:4px;border-radius:8px;" />`
+    : `<div style="font-size:34px;margin-bottom:4px;">${c.logo}</div>`;
+
+  const tarifBlock = enreg.articles.map((a, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed #ddd;">
+      <div>
+        <span style="font-size:12px;font-weight:700;">${a.type} ${a.taille}</span>
+        <span style="font-size:10px;color:#555;margin-left:6px;">${a.description || ""}</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:#555;">${a.qte} × ${a.prixUnit.toLocaleString()} ${c.devise||"FCFA"}</div>
+        <div style="font-size:13px;font-weight:800;color:${primaryColor};">${(a.qte * a.prixUnit).toLocaleString()} ${c.devise||"FCFA"}</div>
+      </div>
+    </div>`).join("");
+
+  const receiptBlock = (type) => `
+    <div style="font-family:'Courier New',monospace;width:310px;margin:0 auto;padding:14px;border:2px solid #ccc;border-radius:8px;color:#000;background:#fff;">
+      <div style="text-align:center;border-bottom:3px solid ${primaryColor};padding-bottom:10px;margin-bottom:10px;">
+        ${logoHtml}
+        <div style="font-size:17px;font-weight:900;letter-spacing:1px;color:${primaryColor};">${c.nom.toUpperCase()}</div>
+        <div style="font-size:9px;color:#555;font-style:italic;">${c.slogan}</div>
+        <div style="font-size:9px;color:#777;margin-top:3px;">${c.adresse}${c.ville ? ", " + c.ville : ""}</div>
+        <div style="font-size:9px;color:#777;">📞 ${c.tel}</div>
+      </div>
+      <div style="text-align:center;margin-bottom:10px;">
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;">*** ${type === "P" ? "REÇU PASSAGER" : "SOUCHE BAGAGISTE"} ***</div>
+        <div style="font-size:26px;font-weight:900;letter-spacing:3px;color:${primaryColor};margin:4px 0;">${enreg.id}</div>
+        <span style="font-size:10px;font-weight:800;padding:3px 14px;border:2px solid ${primaryColor};color:${primaryColor};display:inline-block;">🧳 BAGAGE ENREGISTRÉ</span>
+      </div>
+      <div style="border-top:2px dashed #ccc;border-bottom:2px dashed #ccc;padding:8px 0;margin:8px 0;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Passager</div><div style="font-size:12px;font-weight:700;">${enreg.passagerNom}</div>${enreg.passagerTel ? `<div style="font-size:10px;color:#555;">📞 ${enreg.passagerTel}</div>` : ""}</div>
+          <div style="text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Date</div><div style="font-size:12px;font-weight:700;">${enreg.date}</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Route</div><div style="font-size:12px;font-weight:700;">${enreg.route}</div></div>
+          <div style="text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Départ</div><div style="font-size:13px;font-weight:900;color:${primaryColor};">${enreg.heureDep || "—"}</div></div>
+        </div>
+        <div style="margin-bottom:5px;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Bagagiste</div><div style="font-size:12px;font-weight:700;">👤 ${enreg.bagagiste}</div></div>
+        ${enreg.ticketRef ? `<div style="font-size:9px;color:#888;">Réf. Billet: <strong>${enreg.ticketRef}</strong></div>` : ""}
+      </div>
+      <div style="margin:8px 0;">
+        <div style="font-size:9px;color:#888;text-transform:uppercase;margin-bottom:6px;font-weight:700;">Détail des bagages (${enreg.totalPieces} pièce(s))</div>
+        ${tarifBlock}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f8f8;border-radius:6px;padding:8px 10px;margin:8px 0;">
+        <div>
+          <div style="font-size:9px;color:#888;text-transform:uppercase;">Mode · ${enreg.paiement}</div>
+          <div style="font-size:22px;font-weight:900;color:${primaryColor};">${enreg.totalPrix.toLocaleString()} <span style="font-size:11px;">${c.devise||"FCFA"}</span></div>
+        </div>
+        ${type === "P" ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=65x65&data=${enreg.id}" width="65" style="border-radius:4px;" />` : ""}
+      </div>
+      <div style="border-top:2px dashed #ccc;padding-top:6px;margin-top:6px;font-size:9px;color:#888;text-align:center;">
+        Émis le ${enreg.date} à ${enreg.heureEmission} · Bagagiste: ${enreg.bagagiste}
+      </div>
+      ${type === "B" ? `<div style="margin-top:10px;text-align:center;font-size:9px;color:#888;">SIGNATURE BAGAGISTE: ___________________</div>` : ""}
+    </div>`;
+
+  return receiptBlock("P") + `<div style="margin:12px auto;width:310px;text-align:center;border-top:2px dashed #ccc;font-size:10px;padding-top:6px;">✂ ─ ─ ─ COUPER ICI ─ ─ ─ ✂</div>` + receiptBlock("B");
+}
+
+function BagageReceiptModal({ enreg, db, T, onClose }) {
+  const ref = useRef();
+  const handlePrint = () => {
+    const win = window.open("", "_blank", "width=420,height=820");
+    win.document.write(`<html><head><title>${enreg.id}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;display:flex;flex-direction:column;align-items:center;padding:10px;}</style></head><body>${ref.current.innerHTML}</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+  return (
+    <Modal title="🧳 Reçu bagage" onClose={onClose} T={T}>
+      <div ref={ref} dangerouslySetInnerHTML={{ __html: buildBagageReceiptHTML(enreg, db.compagnie) }} style={{ transform: "scale(0.82)", transformOrigin: "top center" }} />
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <Btn onClick={handlePrint} color="#0891B2" full>🖨️ Imprimer (double reçu)</Btn>
+        <Btn onClick={onClose} color={T.textMuted} outline>Fermer</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function BagagesSection({ db, setDB, user, T }) {
+  const [toast, show] = useToast();
+  const [vue, setVue] = useState("enregistrer"); // enregistrer | historique | tarifs
+  const [printEnreg, setPrintEnreg] = useState(null);
+  const CYAN = "#0891B2";
+
+  // ── Formulaire enregistrement ──
+  const emptyForm = { passagerNom: "", passagerTel: "", ticketRef: "", route: "", heureDep: "", paiement: "Espèces", articles: [] };
+  const [form, setForm] = useState(emptyForm);
+  const [newArticle, setNewArticle] = useState({ type: "Valise", taille: "Moyen", qte: 1, prixUnit: 0, description: "" });
+  const [ticketSearch, setTicketSearch] = useState("");
+  const [ticketFound, setTicketFound] = useState(null);
+  const [ticketError, setTicketError] = useState("");
+
+  // ── Recherche ticket par ID ──
+  const rechercherTicket = (id) => {
+    const q = id.trim().toUpperCase();
+    setTicketSearch(q);
+    setTicketError("");
+    setTicketFound(null);
+    if (!q) return;
+    const vente = db.ventes.find(v => v.ticketId && v.ticketId.toUpperCase() === q);
+    if (vente) {
+      setTicketFound(vente);
+      setForm(f => ({
+        ...f,
+        passagerNom: vente.passager || "",
+        passagerTel: vente.passagerTel || "",
+        ticketRef: vente.ticketId,
+        route: vente.dest || "",
+        heureDep: vente.heureDep || "",
+      }));
+      show("✅ Passager trouvé — informations chargées !");
+    } else if (q.length >= 3) {
+      setTicketError("Ticket introuvable. Vérifiez l'ID ou saisissez les infos manuellement.");
+    }
+  };
+
+  // ── Tarif auto selon taille ──
+  const getTarifAuto = (taille) => {
+    const t = db.tarifsBagage?.find(t => t.taille === taille);
+    return t ? t.prixBase : 0;
+  };
+
+  const handleTailleChange = (taille) => {
+    setNewArticle(a => ({ ...a, taille, prixUnit: getTarifAuto(taille) }));
+  };
+
+  const addArticle = () => {
+    if (!newArticle.qte || newArticle.qte < 1) { show("Quantité invalide", "error"); return; }
+    setForm(f => ({ ...f, articles: [...f.articles, { ...newArticle, id: Date.now() }] }));
+    setNewArticle({ type: "Valise", taille: "Moyen", qte: 1, prixUnit: getTarifAuto("Moyen"), description: "" });
+  };
+
+  const removeArticle = (id) => setForm(f => ({ ...f, articles: f.articles.filter(a => a.id !== id) }));
+
+  const totalPrix = form.articles.reduce((s, a) => s + a.qte * a.prixUnit, 0);
+  const totalPieces = form.articles.reduce((s, a) => s + Number(a.qte), 0);
+
+  const enregistrer = () => {
+    if (!form.passagerNom.trim()) { show("Nom du passager requis", "error"); return; }
+    if (!form.route.trim()) { show("Route requise", "error"); return; }
+    if (form.articles.length === 0) { show("Ajoutez au moins un bagage", "error"); return; }
+    const now = new Date();
+    const date = now.toLocaleDateString("fr-FR");
+    const heureEmission = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const id = `${db.bagagePrefix || "BG"}-${String(db.bagageCounter || 1).padStart(3, "0")}`;
+    const enreg = {
+      id,
+      passagerNom: form.passagerNom.trim(),
+      passagerTel: form.passagerTel.trim(),
+      ticketRef: form.ticketRef.trim(),
+      route: form.route.trim(),
+      heureDep: form.heureDep,
+      paiement: form.paiement,
+      articles: form.articles,
+      totalPrix,
+      totalPieces,
+      bagagiste: user.nom,
+      date,
+      heureEmission,
+    };
+    setDB(d => ({
+      ...d,
+      bagageCounter: (d.bagageCounter || 1) + 1,
+      bagages: [...(d.bagages || []), enreg],
+    }));
+    setPrintEnreg(enreg);
+    setForm(emptyForm);
+    setTicketSearch("");
+    setTicketFound(null);
+    setTicketError("");
+    show(`✅ Bagage ${id} enregistré !`);
+  };
+
+  // ── Statistiques ──
+  const bagages = db.bagages || [];
+  const totalBagagesRecettes = bagages.reduce((s, b) => s + b.totalPrix, 0);
+  const totalBagagesPieces = bagages.reduce((s, b) => s + b.totalPieces, 0);
+
+  // ── Recherche historique ──
+  const [search, setSearch] = useState("");
+  const histoFiltré = bagages.filter(b =>
+    !search || `${b.id} ${b.passagerNom} ${b.passagerTel} ${b.route} ${b.bagagiste}`.toLowerCase().includes(search.toLowerCase())
+  ).slice().reverse();
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+      {printEnreg && <BagageReceiptModal enreg={printEnreg} db={db} T={T} onClose={() => setPrintEnreg(null)} />}
+
+      {/* KPI */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+        {[
+          { l: "Enregistrements", v: bagages.length, c: CYAN },
+          { l: "Pièces totales", v: totalBagagesPieces, c: T.blue },
+          { l: "Recettes", v: `${totalBagagesRecettes.toLocaleString()} F`, c: T.gold },
+        ].map(s => (
+          <div key={s.l} style={{ background: T.surface, borderRadius: 12, padding: "10px 8px", textAlign: "center", borderTop: `2px solid ${s.c}`, border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: s.c }}>{s.v}</div>
+            <div style={{ fontSize: 8, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* TABS */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {[["enregistrer","🧳 Enregistrer"], ["historique","📋 Historique"], ["tarifs","💰 Tarifs"]].map(([id, label]) => (
+          <button key={id} onClick={() => setVue(id)}
+            style={{ flex: 1, padding: "8px 4px", borderRadius: 10, border: "none", fontSize: 10, fontWeight: 700, cursor: "pointer", background: vue === id ? CYAN : T.surfaceLL, color: vue === id ? "#fff" : T.textSub }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── ENREGISTREMENT ── */}
+      {vue === "enregistrer" && (
+        <div>
+          {/* Recherche ticket */}
+          <Card T={T} style={{ border: `2px solid ${CYAN}66`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN, marginBottom: 10 }}>🎫 Lier à un billet passager</div>
+            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>Entrez l'ID du ticket pour charger automatiquement les informations du passager.</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <Inp
+                  value={ticketSearch}
+                  onChange={e => rechercherTicket(e.target.value)}
+                  placeholder="Ex: TP-001"
+                  T={T}
+                />
+              </div>
+              <button onClick={() => { setTicketSearch(""); setTicketFound(null); setTicketError(""); setForm(f=>({...f,ticketRef:""})); }}
+                style={{ background: `${T.red}18`, color: T.red, border: "none", borderRadius: 8, padding: "0 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>✕</button>
+            </div>
+            {ticketFound && (
+              <div style={{ background: `${CYAN}18`, border: `1px solid ${CYAN}44`, borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ fontSize: 10, color: CYAN, fontWeight: 800, textTransform: "uppercase", marginBottom: 6 }}>✅ Billet trouvé</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                  {[
+                    ["N° Ticket", ticketFound.ticketId],
+                    ["Passager", ticketFound.passager],
+                    ["Téléphone", ticketFound.passagerTel || "—"],
+                    ["Route", ticketFound.dest],
+                    ["Départ", ticketFound.heureDep || "—"],
+                    ["Siège", ticketFound.siege || "—"],
+                  ].map(([l, v]) => (
+                    <div key={l}>
+                      <div style={{ fontSize: 9, color: T.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{l}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {ticketError && (
+              <div style={{ background: `${T.red}18`, border: `1px solid ${T.red}44`, borderRadius: 8, padding: "8px 12px", fontSize: 11, color: T.red, fontWeight: 600 }}>
+                ⚠️ {ticketError}
+              </div>
+            )}
+          </Card>
+
+          {/* Passager */}
+          <Card T={T} style={{ border: `1px solid ${CYAN}44`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN, marginBottom: 12 }}>👤 Informations passager</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Nom complet *" T={T}>
+                <Inp value={form.passagerNom} onChange={e => setForm(f => ({ ...f, passagerNom: e.target.value }))} placeholder="Moussa Diop" T={T} />
+              </Fld>
+              <Fld label="Téléphone" T={T}>
+                <Inp value={form.passagerTel} onChange={e => setForm(f => ({ ...f, passagerTel: e.target.value }))} placeholder="+221 77…" type="tel" T={T} />
+              </Fld>
+            </div>
+            <Fld label="Réf. billet" T={T}>
+              <Inp value={form.ticketRef} onChange={e => setForm(f => ({ ...f, ticketRef: e.target.value }))} placeholder="TP-001" T={T} />
+            </Fld>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Route *" T={T}>
+                <Sel value={form.route} onChange={e => setForm(f => ({ ...f, route: e.target.value }))} T={T}>
+                  <option value="">— Route —</option>
+                  {db.routes.map(r => <option key={r.id} value={`${r.depart} → ${r.arrivee}`}>{r.depart} → {r.arrivee}</option>)}
+                  <option value="Autre">Autre destination</option>
+                </Sel>
+              </Fld>
+              <Fld label="Heure départ" T={T}>
+                <Inp type="time" value={form.heureDep} onChange={e => setForm(f => ({ ...f, heureDep: e.target.value }))} T={T} />
+              </Fld>
+            </div>
+          </Card>
+
+          {/* Articles */}
+          <Card T={T} style={{ border: `1px solid ${CYAN}44`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN, marginBottom: 12 }}>📦 Ajouter un bagage</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Type" T={T}>
+                <Sel value={newArticle.type} onChange={e => setNewArticle(a => ({ ...a, type: e.target.value }))} T={T}>
+                  {TYPES_BAGAGE.map(t => <option key={t}>{t}</option>)}
+                </Sel>
+              </Fld>
+              <Fld label="Taille" T={T}>
+                <Sel value={newArticle.taille} onChange={e => handleTailleChange(e.target.value)} T={T}>
+                  {TAILLES_BAGAGE.map(t => <option key={t}>{t}</option>)}
+                </Sel>
+              </Fld>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Quantité" T={T}>
+                <Inp type="number" value={newArticle.qte} onChange={e => setNewArticle(a => ({ ...a, qte: parseInt(e.target.value) || 1 }))} T={T} />
+              </Fld>
+              <Fld label={`Prix unitaire (${db.compagnie.devise || "FCFA"})`} T={T}>
+                <Inp type="number" value={newArticle.prixUnit} onChange={e => setNewArticle(a => ({ ...a, prixUnit: parseInt(e.target.value) || 0 }))} T={T} />
+              </Fld>
+            </div>
+            <Fld label="Description (optionnel)" T={T}>
+              <Inp value={newArticle.description} onChange={e => setNewArticle(a => ({ ...a, description: e.target.value }))} placeholder="Couleur, marque…" T={T} />
+            </Fld>
+            {/* Tarifs suggérés */}
+            {db.tarifsBagage && db.tarifsBagage.length > 0 && (
+              <div style={{ background: T.surfaceLL, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ fontSize: 9, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>Tarifs suggérés (cliquer pour appliquer)</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {db.tarifsBagage.map(t => (
+                    <button key={t.id} onClick={() => setNewArticle(a => ({ ...a, taille: t.taille, prixUnit: t.prixBase }))}
+                      style={{ background: newArticle.prixUnit === t.prixBase ? `${CYAN}22` : T.surface, border: `1px solid ${newArticle.prixUnit === t.prixBase ? CYAN : T.border}`, color: newArticle.prixUnit === t.prixBase ? CYAN : T.textSub, borderRadius: 8, padding: "4px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                      {t.nom}: {t.prixBase.toLocaleString()} F
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10, alignItems: "center", background: `${CYAN}11`, borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+              <span style={{ fontSize: 13 }}>🧳</span>
+              <span style={{ fontSize: 12, color: T.textSub }}>{newArticle.qte}× {newArticle.type} {newArticle.taille}</span>
+              <span style={{ marginLeft: "auto", fontWeight: 900, color: CYAN, fontSize: 14 }}>{(newArticle.qte * newArticle.prixUnit).toLocaleString()} F</span>
+            </div>
+            <Btn onClick={addArticle} color={CYAN} full>+ Ajouter ce bagage</Btn>
+          </Card>
+
+          {/* Liste articles ajoutés */}
+          {form.articles.length > 0 && (
+            <Card T={T} style={{ marginBottom: 12, border: `1px solid ${CYAN}33` }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: CYAN, marginBottom: 10 }}>🗃️ Bagages enregistrés ({totalPieces} pièce(s))</div>
+              {form.articles.map((a, i) => (
+                <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${T.border}` }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{a.qte}× {a.type} {a.taille}</div>
+                    {a.description && <div style={{ fontSize: 10, color: T.textMuted }}>{a.description}</div>}
+                    <div style={{ fontSize: 10, color: T.textSub }}>{a.prixUnit.toLocaleString()} F/pièce</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontWeight: 800, color: CYAN, fontSize: 13 }}>{(a.qte * a.prixUnit).toLocaleString()} F</span>
+                    <button onClick={() => removeArticle(a.id)} style={{ background: `${T.red}18`, border: "none", color: T.red, borderRadius: 6, width: 26, height: 26, fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕</button>
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", marginTop: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Total</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: CYAN }}>{totalPrix.toLocaleString()} {db.compagnie.devise || "FCFA"}</span>
+              </div>
+            </Card>
+          )}
+
+          {/* Paiement & validation */}
+          {form.articles.length > 0 && (
+            <Card T={T} style={{ marginBottom: 12, border: `1px solid ${CYAN}44` }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: CYAN, marginBottom: 10 }}>💳 Mode de paiement</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14 }}>
+                {PAIEMENTS.map(p => (
+                  <button key={p} onClick={() => setForm(f => ({ ...f, paiement: p }))}
+                    style={{ padding: "7px 12px", borderRadius: 8, border: `1.5px solid ${form.paiement === p ? CYAN : T.border}`, background: form.paiement === p ? `${CYAN}22` : T.inputBg, color: form.paiement === p ? CYAN : T.textSub, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <Btn onClick={enregistrer} color={CYAN} full>✅ Enregistrer &amp; Imprimer reçu</Btn>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── HISTORIQUE ── */}
+      {vue === "historique" && (
+        <div>
+          <div style={{ position: "relative", marginBottom: 12 }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}>🔍</span>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nom, N° reçu, route, bagagiste…"
+              style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 10px 9px 30px", color: T.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {histoFiltré.length === 0 ? (
+            <Card T={T} style={{ textAlign: "center", padding: "30px 0" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🧳</div>
+              <div style={{ color: T.textMuted, fontSize: 12 }}>Aucun enregistrement trouvé</div>
+            </Card>
+          ) : histoFiltré.map(b => (
+            <Card key={b.id} T={T} border={CYAN} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontWeight: 900, color: CYAN, fontSize: 14 }}>{b.id}</span>
+                    <span style={{ background: `${CYAN}22`, color: CYAN, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{b.totalPieces} pièce(s)</span>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginTop: 2 }}>{b.passagerNom}</div>
+                  {b.passagerTel && <div style={{ fontSize: 11, color: T.textMuted }}>📞 {b.passagerTel}</div>}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: CYAN }}>{b.totalPrix.toLocaleString()} F</div>
+                  <div style={{ fontSize: 10, color: T.textMuted }}>{b.paiement}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: T.textSub, marginBottom: 6 }}>
+                🗺️ {b.route}{b.heureDep ? ` · 🕐 ${b.heureDep}` : ""}
+              </div>
+              <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 8 }}>
+                {b.date} {b.heureEmission} · 👤 {b.bagagiste}
+                {b.ticketRef ? ` · Billet: ${b.ticketRef}` : ""}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+                {b.articles.map((a, i) => (
+                  <span key={i} style={{ background: T.surfaceLL, border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 8px", fontSize: 10, color: T.textSub }}>
+                    {a.qte}× {a.type} {a.taille}
+                  </span>
+                ))}
+              </div>
+              <Btn onClick={() => setPrintEnreg(b)} color={CYAN} outline small>🖨️ Réimprimer</Btn>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* ── TARIFS ── */}
+      {vue === "tarifs" && (
+        <div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 12 }}>
+            Ces tarifs sont appliqués par défaut lors de l'enregistrement. Le bagagiste peut les modifier à la pièce.
+          </div>
+          {(db.tarifsBagage || []).map(t => (
+            <TarifBagageEditor key={t.id} tarif={t} db={db} setDB={setDB} T={T} CYAN={CYAN} show={show} />
+          ))}
+          <NouveauTarifForm db={db} setDB={setDB} T={T} CYAN={CYAN} show={show} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TarifBagageEditor({ tarif, db, setDB, T, CYAN, show }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ ...tarif });
+  const save = () => {
+    if (!form.nom || !form.prixBase) { show("Nom et prix requis", "error"); return; }
+    setDB(d => ({ ...d, tarifsBagage: d.tarifsBagage.map(t => t.id === tarif.id ? { ...form, prixBase: parseInt(form.prixBase) || 0 } : t) }));
+    show("✅ Tarif mis à jour !"); setEditing(false);
+  };
+  return (
+    <Card T={T} border={CYAN} style={{ marginBottom: 10 }}>
+      {editing ? (
+        <div>
+          <Fld label="Nom du tarif" T={T}><Inp value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} T={T} /></Fld>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Fld label="Taille" T={T}>
+              <Sel value={form.taille} onChange={e => setForm(f => ({ ...f, taille: e.target.value }))} T={T}>
+                {TAILLES_BAGAGE.map(t => <option key={t}>{t}</option>)}
+              </Sel>
+            </Fld>
+            <Fld label="Prix de base (F)" T={T}><Inp type="number" value={form.prixBase} onChange={e => setForm(f => ({ ...f, prixBase: e.target.value }))} T={T} /></Fld>
+          </div>
+          <Fld label="Description" T={T}><Inp value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} T={T} /></Fld>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn onClick={save} color={CYAN} full>Enregistrer</Btn>
+            <Btn onClick={() => setEditing(false)} color={T.textMuted} outline>Annuler</Btn>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: T.text }}>{tarif.nom}</div>
+              <div style={{ fontSize: 10, color: T.textMuted }}>{tarif.taille} · {tarif.description}</div>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: CYAN }}>{tarif.prixBase.toLocaleString()} F</div>
+          </div>
+          <div style={{ display: "flex", gap: 7 }}>
+            <Btn onClick={() => setEditing(true)} color={CYAN} outline small>✏️ Modifier</Btn>
+            <Btn onClick={() => { setDB(d => ({ ...d, tarifsBagage: d.tarifsBagage.filter(t => t.id !== tarif.id) })); show("🗑 Tarif supprimé"); }} color={T.red} outline small>🗑</Btn>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function NouveauTarifForm({ db, setDB, T, CYAN, show }) {
+  const [form, setForm] = useState({ nom: "", taille: "Moyen", prixBase: "", description: "" });
+  const save = () => {
+    if (!form.nom || !form.prixBase) { show("Nom et prix requis", "error"); return; }
+    setDB(d => ({ ...d, tarifsBagage: [...(d.tarifsBagage || []), { ...form, id: Date.now(), prixBase: parseInt(form.prixBase) || 0 }] }));
+    setForm({ nom: "", taille: "Moyen", prixBase: "", description: "" });
+    show("✅ Nouveau tarif ajouté !");
+  };
+  return (
+    <Card T={T} style={{ border: `1px dashed ${CYAN}66` }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: CYAN, marginBottom: 12 }}>+ Nouveau tarif</div>
+      <Fld label="Nom" T={T}><Inp value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} placeholder="Ex: Colis fragile" T={T} /></Fld>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <Fld label="Taille" T={T}>
+          <Sel value={form.taille} onChange={e => setForm(f => ({ ...f, taille: e.target.value }))} T={T}>
+            {TAILLES_BAGAGE.map(t => <option key={t}>{t}</option>)}
+          </Sel>
+        </Fld>
+        <Fld label="Prix (F)" T={T}><Inp type="number" value={form.prixBase} onChange={e => setForm(f => ({ ...f, prixBase: e.target.value }))} placeholder="1500" T={T} /></Fld>
+      </div>
+      <Fld label="Description" T={T}><Inp value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Détail du tarif" T={T} /></Fld>
+      <Btn onClick={save} color={CYAN} full>Ajouter ce tarif</Btn>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODULE COLIS EXPRESS
+// ═══════════════════════════════════════════════════════════
+const STATUTS_COLIS = ["En attente", "Pris en charge", "En transit", "Livré", "Retourné"];
+const CYAN_COLIS = "#7C3AED";
+
+function buildColisReceiptHTML(colis, compagnie) {
+  const c = compagnie;
+  const color = CYAN_COLIS;
+  const logoHtml = c.logoUrl
+    ? `<img src="${c.logoUrl}" style="width:64px;height:64px;object-fit:contain;margin-bottom:4px;border-radius:8px;" />`
+    : `<div style="font-size:32px;margin-bottom:4px;">${c.logo}</div>`;
+
+  const block = (type) => `
+    <div style="font-family:'Courier New',monospace;width:310px;margin:0 auto;padding:14px;border:2px solid #ccc;border-radius:8px;color:#000;background:#fff;">
+      <div style="text-align:center;border-bottom:3px solid ${color};padding-bottom:10px;margin-bottom:10px;">
+        ${logoHtml}
+        <div style="font-size:16px;font-weight:900;letter-spacing:1px;color:${color};">${c.nom.toUpperCase()}</div>
+        <div style="font-size:9px;color:#555;font-style:italic;">${c.slogan}</div>
+        <div style="font-size:9px;color:#777;margin-top:3px;">${c.adresse}${c.ville ? ", " + c.ville : ""}</div>
+        <div style="font-size:9px;color:#777;">📞 ${c.tel}</div>
+      </div>
+      <div style="text-align:center;margin-bottom:10px;">
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;">*** ${type === "E" ? "REÇU EXPÉDITEUR" : "BON DE LIVRAISON"} ***</div>
+        <div style="font-size:24px;font-weight:900;letter-spacing:3px;color:${color};margin:4px 0;">${colis.id}</div>
+        <span style="font-size:10px;font-weight:800;padding:3px 14px;border:2px solid ${color};color:${color};display:inline-block;">📦 COLIS EXPRESS</span>
+      </div>
+      <div style="border-top:2px dashed #ccc;border-bottom:2px dashed #ccc;padding:8px 0;margin:8px 0;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Expéditeur</div><div style="font-size:11px;font-weight:700;">${colis.expediteurNom}</div>${colis.expediteurTel ? `<div style="font-size:10px;color:#555;">📞 ${colis.expediteurTel}</div>` : ""}</div>
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Destinataire</div><div style="font-size:11px;font-weight:700;">${colis.destinataireNom}</div>${colis.destinataireTel ? `<div style="font-size:10px;color:#555;">📞 ${colis.destinataireTel}</div>` : ""}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <div><div style="font-size:9px;color:#888;text-transform:uppercase;">Origine</div><div style="font-size:12px;font-weight:800;">${colis.origine}</div></div>
+          <div style="font-size:14px;color:#888;padding-top:8px;">━►</div>
+          <div style="text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Destination</div><div style="font-size:12px;font-weight:800;">${colis.destination}</div></div>
+        </div>
+        ${colis.description ? `<div style="margin-top:5px;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Description</div><div style="font-size:11px;">${colis.description}</div></div>` : ""}
+        ${colis.poids ? `<div style="margin-top:4px;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Poids / Volume</div><div style="font-size:11px;font-weight:700;">${colis.poids}</div></div>` : ""}
+        ${colis.fragile ? `<div style="margin-top:6px;text-align:center;font-size:11px;font-weight:800;color:#DC2626;border:1.5px solid #DC2626;border-radius:6px;padding:3px 0;">⚠️ FRAGILE — MANIPULER AVEC SOIN</div>` : ""}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f8f8;border-radius:6px;padding:8px 10px;margin:8px 0;">
+        <div>
+          <div style="font-size:9px;color:#888;text-transform:uppercase;">Tarif · ${colis.paiement}</div>
+          <div style="font-size:20px;font-weight:900;color:${color};">${colis.prix.toLocaleString()} <span style="font-size:11px;">${c.devise || "FCFA"}</span></div>
+        </div>
+        ${type === "E" ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=65x65&data=${colis.id}" width="65" style="border-radius:4px;" />` : ""}
+      </div>
+      <div style="border-top:2px dashed #ccc;padding-top:6px;margin-top:6px;font-size:9px;color:#888;text-align:center;">
+        Émis le ${colis.date} à ${colis.heureEmission} · Agent: ${colis.agent}
+      </div>
+      ${type === "L" ? `<div style="margin-top:12px;text-align:center;font-size:9px;color:#888;">Signature du destinataire: ___________________</div>` : ""}
+    </div>`;
+  return block("E") + `<div style="margin:12px auto;width:310px;text-align:center;border-top:2px dashed #ccc;font-size:10px;padding-top:6px;">✂ ─ ─ ─ COUPER ICI ─ ─ ─ ✂</div>` + block("L");
+}
+
+function ColisReceiptModal({ colis, db, T, onClose }) {
+  const ref = useRef();
+  const handlePrint = () => {
+    const win = window.open("", "_blank", "width=420,height=820");
+    win.document.write(`<html><head><title>${colis.id}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;display:flex;flex-direction:column;align-items:center;padding:10px;}</style></head><body>${ref.current.innerHTML}</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+  return (
+    <Modal title="📦 Reçu Colis Express" onClose={onClose} T={T}>
+      <div ref={ref} dangerouslySetInnerHTML={{ __html: buildColisReceiptHTML(colis, db.compagnie) }} style={{ transform: "scale(0.82)", transformOrigin: "top center" }} />
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <Btn onClick={handlePrint} color={CYAN_COLIS} full>🖨️ Imprimer (double bon)</Btn>
+        <Btn onClick={onClose} color={T.textMuted} outline>Fermer</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function ColisExpressSection({ db, setDB, user, T }) {
+  const [toast, show] = useToast();
+  const [vue, setVue] = useState("envoyer");
+  const [printColis, setPrintColis] = useState(null);
+  const [ticketSearch, setTicketSearch] = useState("");
+  const [ticketFound, setTicketFound] = useState(null);
+  const [ticketError, setTicketError] = useState("");
+
+  const emptyForm = {
+    expediteurNom: "", expediteurTel: "",
+    destinataireNom: "", destinataireTel: "",
+    origine: "", destination: "",
+    description: "", poids: "", fragile: false,
+    paiement: "Espèces", prix: "", ticketRef: "",
+  };
+  const [form, setForm] = useState(emptyForm);
+  const s = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Recherche ticket pour remplir expéditeur
+  const rechercherTicket = (id) => {
+    const q = id.trim().toUpperCase();
+    setTicketSearch(q);
+    setTicketError("");
+    setTicketFound(null);
+    if (!q) return;
+    const vente = db.ventes.find(v => v.ticketId && v.ticketId.toUpperCase() === q);
+    if (vente) {
+      setTicketFound(vente);
+      setForm(f => ({
+        ...f,
+        expediteurNom: vente.passager || "",
+        expediteurTel: vente.passagerTel || "",
+        origine: vente.depart || "",
+        destination: vente.arrivee || "",
+        ticketRef: vente.ticketId,
+      }));
+      show("✅ Passager trouvé — champs pré-remplis !");
+    } else if (q.length >= 3) {
+      setTicketError("Ticket introuvable. Remplissez manuellement.");
+    }
+  };
+
+  // Appliquer tarif depuis les tarifs colis express
+  const appliquerTarif = (tarif) => {
+    setForm(f => ({ ...f, prix: tarif.prixBase }));
+  };
+
+  const envoyer = () => {
+    if (!form.expediteurNom.trim()) { show("Nom expéditeur requis", "error"); return; }
+    if (!form.destinataireNom.trim()) { show("Nom destinataire requis", "error"); return; }
+    if (!form.destination.trim()) { show("Destination requise", "error"); return; }
+    if (!form.prix || parseInt(form.prix) <= 0) { show("Prix requis", "error"); return; }
+    const now = new Date();
+    const id = `${db.colisPrefix || "CX"}-${String(db.colisCounter || 1).padStart(4, "0")}`;
+    const newColis = {
+      id,
+      ...form,
+      prix: parseInt(form.prix) || 0,
+      statut: "En attente",
+      agent: user.nom,
+      date: now.toLocaleDateString("fr-FR"),
+      heureEmission: now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+    };
+    setDB(d => ({
+      ...d,
+      colisCounter: (d.colisCounter || 1) + 1,
+      colis: [...(d.colis || []), newColis],
+    }));
+    setPrintColis(newColis);
+    setForm(emptyForm);
+    setTicketSearch("");
+    setTicketFound(null);
+    show(`✅ Colis ${id} enregistré !`);
+  };
+
+  const majStatut = (id, statut) => {
+    setDB(d => ({ ...d, colis: (d.colis || []).map(c => c.id === id ? { ...c, statut } : c) }));
+    show(`✅ Statut mis à jour : ${statut}`);
+  };
+
+  const colisList = db.colis || [];
+  const totalRecettes = colisList.reduce((s, c) => s + (c.prix || 0), 0);
+
+  const [search, setSearch] = useState("");
+  const [filtreStatut, setFiltreStatut] = useState("Tous");
+  const colisFiltrés = colisList.filter(c => {
+    if (filtreStatut !== "Tous" && c.statut !== filtreStatut) return false;
+    if (search && !`${c.id} ${c.expediteurNom} ${c.destinataireNom} ${c.destination} ${c.description}`.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  }).slice().reverse();
+
+  const statutColors = { "En attente": T.blue, "Pris en charge": T.orange, "En transit": T.gold, "Livré": T.green, "Retourné": T.red };
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+      {printColis && <ColisReceiptModal colis={printColis} db={db} T={T} onClose={() => setPrintColis(null)} />}
+
+      {/* KPI */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+        {[
+          { l: "Total", v: colisList.length, c: CYAN_COLIS },
+          { l: "En transit", v: colisList.filter(c => c.statut === "En transit").length, c: T.gold },
+          { l: "Livrés", v: colisList.filter(c => c.statut === "Livré").length, c: T.green },
+          { l: "Recettes", v: `${totalRecettes.toLocaleString()} F`, c: T.gold },
+        ].map(s => (
+          <div key={s.l} style={{ background: T.surface, borderRadius: 12, padding: "10px 6px", textAlign: "center", borderTop: `2px solid ${s.c}`, border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: s.c }}>{s.v}</div>
+            <div style={{ fontSize: 8, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* TABS */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {[["envoyer","📦 Nouveau colis"], ["suivi","📋 Suivi & Historique"], ["tarifs","💰 Tarifs"]].map(([id, label]) => (
+          <button key={id} onClick={() => setVue(id)}
+            style={{ flex: 1, padding: "8px 4px", borderRadius: 10, border: "none", fontSize: 10, fontWeight: 700, cursor: "pointer", background: vue === id ? CYAN_COLIS : T.surfaceLL, color: vue === id ? "#fff" : T.textSub }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── ENVOI COLIS ── */}
+      {vue === "envoyer" && (
+        <div>
+          {/* Liaison ticket */}
+          <Card T={T} style={{ border: `2px solid ${CYAN_COLIS}66`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN_COLIS, marginBottom: 8 }}>🎫 Lier à un billet (optionnel)</div>
+            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>Si l'expéditeur est un passager, entrez son N° de ticket pour pré-remplir ses informations.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <Inp value={ticketSearch} onChange={e => rechercherTicket(e.target.value)} placeholder="Ex: TP-001" T={T} />
+              </div>
+              <button onClick={() => { setTicketSearch(""); setTicketFound(null); setTicketError(""); s("ticketRef",""); }}
+                style={{ background: `${T.red}18`, color: T.red, border: "none", borderRadius: 8, padding: "0 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>✕</button>
+            </div>
+            {ticketFound && (
+              <div style={{ background: `${CYAN_COLIS}18`, border: `1px solid ${CYAN_COLIS}44`, borderRadius: 10, padding: "10px 12px", marginTop: 8 }}>
+                <div style={{ fontSize: 10, color: CYAN_COLIS, fontWeight: 800, marginBottom: 6 }}>✅ Billet {ticketFound.ticketId} — {ticketFound.passager}</div>
+                <div style={{ fontSize: 11, color: T.textSub }}>{ticketFound.dest} · {ticketFound.heureDep}</div>
+              </div>
+            )}
+            {ticketError && (
+              <div style={{ background: `${T.red}18`, border: `1px solid ${T.red}44`, borderRadius: 8, padding: "8px 12px", fontSize: 11, color: T.red, marginTop: 8 }}>⚠️ {ticketError}</div>
+            )}
+          </Card>
+
+          {/* Expéditeur */}
+          <Card T={T} style={{ border: `1px solid ${CYAN_COLIS}44`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN_COLIS, marginBottom: 12 }}>📤 Expéditeur</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Nom *" T={T}><Inp value={form.expediteurNom} onChange={e => s("expediteurNom", e.target.value)} placeholder="Nom expéditeur" T={T} /></Fld>
+              <Fld label="Téléphone" T={T}><Inp value={form.expediteurTel} onChange={e => s("expediteurTel", e.target.value)} placeholder="+221 77…" type="tel" T={T} /></Fld>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Ville d'origine *" T={T}>
+                <Sel value={form.origine} onChange={e => s("origine", e.target.value)} T={T}>
+                  <option value="">— Ville —</option>
+                  {[...new Set(db.routes.flatMap(r => [r.depart, r.arrivee]))].map(v => <option key={v}>{v}</option>)}
+                </Sel>
+              </Fld>
+              <Fld label="Ville destination *" T={T}>
+                <Sel value={form.destination} onChange={e => s("destination", e.target.value)} T={T}>
+                  <option value="">— Ville —</option>
+                  {[...new Set(db.routes.flatMap(r => [r.depart, r.arrivee]))].map(v => <option key={v}>{v}</option>)}
+                </Sel>
+              </Fld>
+            </div>
+          </Card>
+
+          {/* Destinataire */}
+          <Card T={T} style={{ border: `1px solid ${CYAN_COLIS}44`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN_COLIS, marginBottom: 12 }}>📥 Destinataire</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <Fld label="Nom *" T={T}><Inp value={form.destinataireNom} onChange={e => s("destinataireNom", e.target.value)} placeholder="Nom destinataire" T={T} /></Fld>
+              <Fld label="Téléphone *" T={T}><Inp value={form.destinataireTel} onChange={e => s("destinataireTel", e.target.value)} placeholder="+221 77…" type="tel" T={T} /></Fld>
+            </div>
+          </Card>
+
+          {/* Détail colis */}
+          <Card T={T} style={{ border: `1px solid ${CYAN_COLIS}44`, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: CYAN_COLIS, marginBottom: 12 }}>📦 Détail du colis</div>
+            <Fld label="Description du contenu *" T={T}>
+              <Inp value={form.description} onChange={e => s("description", e.target.value)} placeholder="Ex: Médicaments, vêtements…" T={T} />
+            </Fld>
+            <Fld label="Poids / Volume" T={T}>
+              <Inp value={form.poids} onChange={e => s("poids", e.target.value)} placeholder="Ex: 3 kg, 2 cartons" T={T} />
+            </Fld>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 12 }}>
+              <input type="checkbox" checked={form.fragile} onChange={e => s("fragile", e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: T.red }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.red }}>⚠️ Colis fragile (mention imprimée)</span>
+            </label>
+
+            {/* Tarifs suggérés */}
+            {(db.tarifsColisExpress || []).length > 0 && (
+              <div style={{ background: T.surfaceLL, borderRadius: 10, padding: 10, marginBottom: 10 }}>
+                <div style={{ fontSize: 9, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Tarifs suggérés (cliquer pour appliquer)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(db.tarifsColisExpress || []).map(t => (
+                    <button key={t.id} onClick={() => appliquerTarif(t)}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: parseInt(form.prix) === t.prixBase ? `${CYAN_COLIS}22` : T.surface, border: `1px solid ${parseInt(form.prix) === t.prixBase ? CYAN_COLIS : T.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{t.nom}</div>
+                        <div style={{ fontSize: 9, color: T.textMuted }}>{t.poids} · ⏱ {t.delai}</div>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: parseInt(form.prix) === t.prixBase ? CYAN_COLIS : T.gold }}>{t.prixBase.toLocaleString()} F</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Fld label={`Prix total (${db.compagnie.devise || "FCFA"}) *`} T={T}>
+              <Inp type="number" value={form.prix} onChange={e => s("prix", e.target.value)} placeholder="Ex: 2500" T={T} />
+            </Fld>
+          </Card>
+
+          {/* Paiement */}
+          <Card T={T} style={{ border: `1px solid ${CYAN_COLIS}44`, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: CYAN_COLIS, marginBottom: 10 }}>💳 Mode de paiement</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {PAIEMENTS.map(p => (
+                <button key={p} onClick={() => s("paiement", p)}
+                  style={{ padding: "7px 12px", borderRadius: 8, border: `1.5px solid ${form.paiement === p ? CYAN_COLIS : T.border}`, background: form.paiement === p ? `${CYAN_COLIS}22` : T.inputBg, color: form.paiement === p ? CYAN_COLIS : T.textSub, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          {/* Récapitulatif */}
+          {form.expediteurNom && form.destinataireNom && form.prix && (
+            <Card T={T} style={{ background: `${CYAN_COLIS}11`, border: `1.5px solid ${CYAN_COLIS}55`, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: CYAN_COLIS, marginBottom: 8 }}>📋 Récapitulatif</div>
+              {[
+                ["Expéditeur", `${form.expediteurNom}${form.expediteurTel ? " · " + form.expediteurTel : ""}`],
+                ["Destinataire", `${form.destinataireNom}${form.destinataireTel ? " · " + form.destinataireTel : ""}`],
+                ["Trajet", form.origine && form.destination ? `${form.origine} → ${form.destination}` : "—"],
+                ["Description", form.description || "—"],
+                ["Fragile", form.fragile ? "⚠️ OUI" : "Non"],
+                ["Paiement", form.paiement],
+              ].map(([l, v]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ color: T.textSub }}>{l}</span>
+                  <span style={{ fontWeight: 700, color: T.text, textAlign: "right", maxWidth: "60%" }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: `1px solid ${CYAN_COLIS}44`, marginTop: 8, paddingTop: 8, display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>Total</span>
+                <span style={{ fontSize: 22, fontWeight: 900, color: CYAN_COLIS }}>{parseInt(form.prix || 0).toLocaleString()} {db.compagnie.devise || "FCFA"}</span>
+              </div>
+            </Card>
+          )}
+
+          <Btn onClick={envoyer} color={CYAN_COLIS} full>✅ Enregistrer le colis &amp; Imprimer</Btn>
+        </div>
+      )}
+
+      {/* ── SUIVI ── */}
+      {vue === "suivi" && (
+        <div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, position: "relative" }}>
+              <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}>🔍</span>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="N° colis, nom, destination…"
+                style={{ width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 10px 9px 30px", color: T.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 10, marginBottom: 12 }}>
+            {["Tous", ...STATUTS_COLIS].map(st => (
+              <button key={st} onClick={() => setFiltreStatut(st)}
+                style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 20, border: "none", fontSize: 10, fontWeight: 700, cursor: "pointer", background: filtreStatut === st ? CYAN_COLIS : T.surfaceLL, color: filtreStatut === st ? "#fff" : T.textSub }}>
+                {st}
+              </button>
+            ))}
+          </div>
+          {colisFiltrés.length === 0 ? (
+            <Card T={T} style={{ textAlign: "center", padding: "30px 0" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📦</div>
+              <div style={{ color: T.textMuted, fontSize: 12 }}>Aucun colis trouvé</div>
+            </Card>
+          ) : colisFiltrés.map(c => (
+            <Card key={c.id} T={T} border={statutColors[c.statut] || T.border} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontWeight: 900, color: CYAN_COLIS, fontSize: 14 }}>{c.id}</span>
+                    {c.fragile && <span style={{ background: `${T.red}22`, color: T.red, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 20 }}>⚠️ FRAGILE</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: T.textSub, marginTop: 2 }}>{c.expediteurNom} → {c.destinataireNom}</div>
+                </div>
+                <span style={{ background: `${statutColors[c.statut] || T.textMuted}22`, color: statutColors[c.statut] || T.textMuted, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>{c.statut}</span>
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}>
+                📍 {c.origine || "—"} → {c.destination} · {c.description}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 10, color: T.textMuted }}>{c.date} {c.heureEmission} · 👤 {c.agent}</span>
+                <span style={{ fontSize: 15, fontWeight: 900, color: CYAN_COLIS }}>{c.prix.toLocaleString()} F</span>
+              </div>
+              {c.ticketRef && <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 8 }}>🎫 Billet lié: {c.ticketRef}</div>}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <Btn onClick={() => setPrintColis(c)} color={CYAN_COLIS} outline small>🖨️ Réimprimer</Btn>
+                {STATUTS_COLIS.filter(st => st !== c.statut).map(st => (
+                  <button key={st} onClick={() => majStatut(c.id, st)}
+                    style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${statutColors[st] || T.border}`, background: "none", color: statutColors[st] || T.textSub, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                    → {st}
+                  </button>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* ── TARIFS COLIS EXPRESS ── */}
+      {vue === "tarifs" && (
+        <div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 12 }}>Tarifs appliqués lors de l'envoi de colis express. Cliquer pour appliquer automatiquement.</div>
+          {(db.tarifsColisExpress || []).map(t => (
+            <Card key={t.id} T={T} border={CYAN_COLIS} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: T.text }}>{t.nom}</div>
+                  <div style={{ fontSize: 10, color: T.textMuted }}>{t.poids} · ⏱ {t.delai}</div>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: CYAN_COLIS }}>{t.prixBase.toLocaleString()} F</div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function DashboardSection({ db, T, user, onNavigate }) {
+  const modules = [
+    { id: "caisse",   icon: "🏦", label: "Ma Caisse",     color: T.green  },
+    { id: "vente",    icon: "🎫", label: "Vente Billet",  color: T.gold   },
+    { id: "bagages",  icon: "🧳", label: "Bagages",       color: "#0891B2" },
+    { id: "colis",    icon: "📦", label: "Colis Express", color: "#7C3AED" },
+    { id: "planning", icon: "🚌", label: "Planning",      color: T.blue   },
+    { id: "recettes", icon: "💰", label: "Recettes",      color: T.purple },
+    { id: "rapports", icon: "📋", label: "Rapports",      color: T.orange },
+    { id: "config",   icon: "⚙️", label: "Configuration", color: T.textMuted },
+  ].filter(m => user.modules.includes(m.id));
+
+  return (
+    <div style={{ padding: "14px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {modules.map(m => (
+          <button key={m.id} onClick={() => onNavigate(m.id)}
+            style={{ background: T.surface, border: `1px solid ${T.border}`, borderTop: `3px solid ${m.color}`, borderRadius: 14, padding: "22px 14px", textAlign: "center", cursor: "pointer" }}
+            onMouseDown={e => e.currentTarget.style.opacity = "0.7"}
+            onMouseUp={e => e.currentTarget.style.opacity = "1"}
+            onTouchStart={e => e.currentTarget.style.opacity = "0.7"}
+            onTouchEnd={e => e.currentTarget.style.opacity = "1"}
+          >
+            <div style={{ fontSize: 34, marginBottom: 8 }}>{m.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{m.label}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODULE RAPPORTS
+// ═══════════════════════════════════════════════════════════
+function RapportsSection({ db, T }) {
+  const [toast, show] = useToast();
+  const [vue, setVue] = useState("journalier");
+  const [filtreDateDeb, setFiltreDateDeb] = useState("");
+  const [filtreDateFin, setFiltreDateFin] = useState("");
+  const [filtreRoute, setFiltreRoute] = useState("");
+  const [filtreCaissier, setFiltreCaissier] = useState("");
+  const c = db.compagnie;
+
+  // ── Liste des caissiers ayant des ventes ──
+  const caissiers = [...new Set(db.ventes.map(v => v.caissier))].filter(Boolean);
+
+  // ── Filtrage des ventes ──
+  const ventesFiltrees = db.ventes.filter(v => {
+    if (filtreRoute && v.dest !== filtreRoute) return false;
+    if (filtreCaissier && v.caissier !== filtreCaissier) return false;
+    if (filtreDateDeb && v.date) {
+      const d = v.date.split("/").reverse().join("-");
+      if (d < filtreDateDeb) return false;
+    }
+    if (filtreDateFin && v.date) {
+      const d = v.date.split("/").reverse().join("-");
+      if (d > filtreDateFin) return false;
+    }
+    return true;
+  });
+
+  const totalRecettes = ventesFiltrees.reduce((s, v) => s + v.prix, 0);
+  const totalBillets = ventesFiltrees.length;
+
+  // ── Par caissier ──
+  const byCaissier = {};
+  ventesFiltrees.forEach(v => {
+    if (!byCaissier[v.caissier]) byCaissier[v.caissier] = { billets: 0, total: 0 };
+    byCaissier[v.caissier].billets++;
+    byCaissier[v.caissier].total += v.prix;
+  });
+
+  // ── Export Excel ──
+  const exportExcel = (type) => {
+    if (!window.XLSX) { show("XLSX non chargé", "error"); return; }
+    const XLSX = window.XLSX;
+    let rows = [], sheetName = "Rapport";
+
+    if (type === "ventes") {
+      sheetName = "Ventes";
+      rows = [
+        ["N° Ticket", "Passager", "Téléphone", "Siège", "Route", "Départ", "Date", "Heure émission", "Véhicule", "Immatriculation", "Prix", "Paiement", "Caissier"],
+        ...ventesFiltrees.map(v => [v.ticketId, v.passager || "—", v.passagerTel || "—", v.siege || "—", v.dest, v.heureDep || "—", v.date, v.heure, v.vehicule || "—", v.immatriculation || "—", v.prix, v.paiement, v.caissier])
+      ];
+    } else if (type === "planning") {
+      sheetName = "Planning";
+      rows = [
+        ["ID Départ", "Route", "Heure", "Statut", "Véhicule", "Immatriculation", "Chauffeur", "Places vendues", "Capacité", "Recettes"],
+        ...db.planning.map(p => {
+          const route = db.routes.find(r => r.id === p.routeId);
+          const veh = db.vehicules.find(v => v.id === p.vehiculeId);
+          const recettes = db.ventes.filter(v => v.planId === p.id).reduce((s, v) => s + v.prix, 0);
+          return [p.id, route ? `${route.depart} → ${route.arrivee}` : "—", p.heure, p.statut, veh ? `${veh.marque} ${veh.modele}` : "—", veh?.immatriculation || "—", veh?.chauffeur || "—", p.vendu, veh?.capacite || 0, recettes];
+        })
+      ];
+    } else if (type === "recettes") {
+      sheetName = "Recettes par route";
+      const byRoute = {};
+      ventesFiltrees.forEach(v => {
+        if (!byRoute[v.dest]) byRoute[v.dest] = { billets: 0, total: 0, paiements: {} };
+        byRoute[v.dest].billets++;
+        byRoute[v.dest].total += v.prix;
+        byRoute[v.dest].paiements[v.paiement] = (byRoute[v.dest].paiements[v.paiement] || 0) + v.prix;
+      });
+      rows = [
+        ["Route", "Billets vendus", "Recettes totales", "Espèces", "Wave", "Orange Money", "MTN Money", "Carte"],
+        ...Object.entries(byRoute).map(([route, d]) => [route, d.billets, d.total, d.paiements["Espèces"] || 0, d.paiements["Wave"] || 0, d.paiements["Orange Money"] || 0, d.paiements["MTN Money"] || 0, d.paiements["Carte"] || 0])
+      ];
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Style header row bold width
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    const colWidths = rows[0].map((_, ci) => ({ wch: Math.max(12, ...rows.map(r => String(r[ci] || "").length)) }));
+    ws["!cols"] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, `TransitPro_${sheetName}_${new Date().toLocaleDateString("fr-FR").replace(/\//g,"-")}.xlsx`);
+    show("✅ Export Excel téléchargé !");
+  };
+
+  // ── Export PDF (impression) ──
+  const exportPDF = (type) => {
+    const primaryColor = c.couleurPrimaire || "#B45309";
+    const logoHtml = c.logoUrl ? `<img src="${c.logoUrl}" style="width:45px;height:45px;object-fit:contain;" />` : `<span style="font-size:26px;">${c.logo}</span>`;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR");
+    const heureStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+    let contenu = "";
+    let titre = "";
+
+    if (type === "ventes") {
+      titre = "Rapport des ventes";
+      const lignes = ventesFiltrees.map((v, i) => `
+        <tr style="background:${i%2===0?"#f8f8f8":"#fff"}">
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${primaryColor};font-size:12px;">${v.ticketId}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;">${v.passager||"—"}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:10px;color:#64748b;">${v.passagerTel||"—"}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;text-align:center;font-weight:700;">${v.siege||"—"}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;">${v.dest}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;">${v.heureDep||"—"}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;">${v.date||"—"}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;text-align:right;font-weight:700;color:#15803d;">${v.prix.toLocaleString()}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:10px;color:#64748b;">${v.paiement}</td>
+        </tr>`).join("");
+      contenu = `
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;font-size:12px;">
+          <thead><tr style="background:${primaryColor};color:#fff;">
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Ticket</th>
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Passager</th>
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Téléphone</th>
+            <th style="padding:9px 8px;text-align:center;font-size:10px;text-transform:uppercase;">Siège</th>
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Route</th>
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Départ</th>
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Date</th>
+            <th style="padding:9px 8px;text-align:right;font-size:10px;text-transform:uppercase;">Prix (${c.devise||"FCFA"})</th>
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Paiement</th>
+          </tr></thead>
+          <tbody>${lignes}</tbody>
+          <tfoot><tr style="background:#f1f5f9;border-top:2px solid ${primaryColor};">
+            <td colspan="7" style="padding:9px 8px;font-weight:800;">TOTAL — ${totalBillets} billet(s)</td>
+            <td style="padding:9px 8px;text-align:right;font-weight:900;color:${primaryColor};font-size:14px;">${totalRecettes.toLocaleString()}</td>
+            <td></td>
+          </tr></tfoot>
+        </table>`;
+
+    } else if (type === "recettes") {
+      titre = "Rapport des recettes par route";
+      const byRoute = {};
+      ventesFiltrees.forEach(v => {
+        if (!byRoute[v.dest]) byRoute[v.dest] = { billets: 0, total: 0, paiements: {} };
+        byRoute[v.dest].billets++;
+        byRoute[v.dest].total += v.prix;
+        byRoute[v.dest].paiements[v.paiement] = (byRoute[v.dest].paiements[v.paiement] || 0) + v.prix;
+      });
+      const lignes = Object.entries(byRoute).map(([route, d], i) => `
+        <tr style="background:${i%2===0?"#f8f8f8":"#fff"}">
+          <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;">${route}</td>
+          <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center;">${d.billets}</td>
+          <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;color:#15803d;">${d.total.toLocaleString()}</td>
+          <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">${(d.paiements["Espèces"]||0).toLocaleString()}</td>
+          <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">${(d.paiements["Wave"]||0).toLocaleString()}</td>
+          <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">${((d.paiements["Orange Money"]||0)+(d.paiements["MTN Money"]||0)).toLocaleString()}</td>
+        </tr>`).join("");
+      contenu = `
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;font-size:12px;">
+          <thead><tr style="background:${primaryColor};color:#fff;">
+            <th style="padding:9px 8px;text-align:left;font-size:10px;text-transform:uppercase;">Route</th>
+            <th style="padding:9px 8px;text-align:center;font-size:10px;text-transform:uppercase;">Billets</th>
+            <th style="padding:9px 8px;text-align:right;font-size:10px;text-transform:uppercase;">Total (${c.devise||"FCFA"})</th>
+            <th style="padding:9px 8px;text-align:right;font-size:10px;text-transform:uppercase;">Espèces</th>
+            <th style="padding:9px 8px;text-align:right;font-size:10px;text-transform:uppercase;">Wave</th>
+            <th style="padding:9px 8px;text-align:right;font-size:10px;text-transform:uppercase;">Mobile Money</th>
+          </tr></thead>
+          <tbody>${lignes}</tbody>
+          <tfoot><tr style="background:#f1f5f9;border-top:2px solid ${primaryColor};">
+            <td style="padding:9px 8px;font-weight:800;">TOTAL</td>
+            <td style="padding:9px 8px;text-align:center;font-weight:800;">${totalBillets}</td>
+            <td style="padding:9px 8px;text-align:right;font-weight:900;color:${primaryColor};font-size:14px;">${totalRecettes.toLocaleString()}</td>
+            <td colspan="3"></td>
+          </tr></tfoot>
+        </table>`;
+    }
+
+    const win = window.open("", "_blank", "width=900,height=750");
+    win.document.write(`<!DOCTYPE html><html><head><title>${titre}</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;padding:20px;}@media print{body{padding:10px;}}</style></head><body>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${primaryColor};padding-bottom:12px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;">${logoHtml}<div><div style="font-size:16px;font-weight:900;color:${primaryColor};">${c.nom.toUpperCase()}</div><div style="font-size:10px;color:#64748b;">${c.adresse}${c.ville?", "+c.ville:""} · ${c.tel}</div></div></div>
+        <div style="text-align:right;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">${titre}</div><div style="font-size:11px;color:#64748b;">Généré le ${dateStr} à ${heureStr}</div>${filtreDateDeb||filtreDateFin?`<div style="font-size:10px;color:#94a3b8;">Période: ${filtreDateDeb||"début"} → ${filtreDateFin||"fin"}</div>`:""}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:#f1f5f9;border-radius:8px;padding:12px;border-top:3px solid ${primaryColor}"><div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;">Total recettes</div><div style="font-size:18px;font-weight:900;color:${primaryColor};margin-top:3px;">${totalRecettes.toLocaleString()} ${c.devise||"FCFA"}</div></div>
+        <div style="background:#f1f5f9;border-radius:8px;padding:12px;border-top:3px solid #2563eb"><div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;">Billets vendus</div><div style="font-size:18px;font-weight:900;color:#2563eb;margin-top:3px;">${totalBillets}</div></div>
+        <div style="background:#f1f5f9;border-radius:8px;padding:12px;border-top:3px solid #15803d"><div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;">Ticket moyen</div><div style="font-size:18px;font-weight:900;color:#15803d;margin-top:3px;">${totalBillets>0?Math.round(totalRecettes/totalBillets).toLocaleString():0} ${c.devise||"FCFA"}</div></div>
+      </div>
+      ${contenu}
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+    show("✅ PDF prêt à imprimer !");
+  };
+
+  // ── Calculs par paiement ──
+  const byPaiement = {};
+  ventesFiltrees.forEach(v => { byPaiement[v.paiement] = (byPaiement[v.paiement] || 0) + v.prix; });
+
+  // ── Calculs par route ──
+  const byRoute = {};
+  ventesFiltrees.forEach(v => {
+    if (!byRoute[v.dest]) byRoute[v.dest] = { billets: 0, total: 0 };
+    byRoute[v.dest].billets++;
+    byRoute[v.dest].total += v.prix;
+  });
+
+  const paiementColors = { "Espèces": T.green, "Wave": T.blue, "Orange Money": T.orange, "MTN Money": T.gold, "Carte": T.purple };
+
+  return (
+    <div style={{ padding: "0 14px" }}>
+      <Toast msg={toast.msg} type={toast.type} />
+
+      {/* KPI */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {[
+          { l: "Recettes totales", v: `${totalRecettes.toLocaleString()} ${c.devise||"FCFA"}`, c: T.gold },
+          { l: "Billets vendus", v: totalBillets, c: T.blue },
+          { l: "Départs effectués", v: db.planning.filter(p => p.statut === "PARTI").length, c: T.green },
+          { l: "Ticket moyen", v: totalBillets > 0 ? `${Math.round(totalRecettes/totalBillets).toLocaleString()} F` : "—", c: T.purple },
+        ].map(s => (
+          <Card key={s.l} T={T} style={{ padding: "12px 14px", borderTop: `2px solid ${s.c}` }}>
+            <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{s.l}</div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: s.c, marginTop: 3 }}>{s.v}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* FILTRES */}
+      <Card T={T} style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: T.gold, marginBottom: 10 }}>🔍 Filtres</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+          <Fld label="Date début" T={T}><Inp type="date" value={filtreDateDeb} onChange={e => setFiltreDateDeb(e.target.value)} T={T} /></Fld>
+          <Fld label="Date fin" T={T}><Inp type="date" value={filtreDateFin} onChange={e => setFiltreDateFin(e.target.value)} T={T} /></Fld>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <Fld label="Route" T={T}>
+            <Sel value={filtreRoute} onChange={e => setFiltreRoute(e.target.value)} T={T}>
+              <option value="">Toutes les routes</option>
+              {db.routes.map(r => <option key={r.id} value={`${r.depart} → ${r.arrivee}`}>{r.depart} → {r.arrivee}</option>)}
+            </Sel>
+          </Fld>
+          <Fld label="Caissier" T={T}>
+            <Sel value={filtreCaissier} onChange={e => setFiltreCaissier(e.target.value)} T={T}>
+              <option value="">Tous</option>
+              {caissiers.map(c => <option key={c} value={c}>{c}</option>)}
+            </Sel>
+          </Fld>
+        </div>
+        {(filtreDateDeb || filtreDateFin || filtreRoute || filtreCaissier) && (
+          <button onClick={() => { setFiltreDateDeb(""); setFiltreDateFin(""); setFiltreRoute(""); setFiltreCaissier(""); }} style={{ background: `${T.red}18`, color: T.red, border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginTop: 8 }}>✕ Effacer les filtres</button>
+        )}
+      </Card>
+
+      {/* EXPORTS */}
+      <Card T={T} style={{ marginBottom: 14, border: `1px solid ${T.gold}44` }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: T.gold, marginBottom: 12 }}>📤 Exporter</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+          <Btn onClick={() => exportPDF("ventes")} color={T.red} full>🖨️ PDF Ventes</Btn>
+          <Btn onClick={() => exportExcel("ventes")} color={T.green} full>📊 Excel Ventes</Btn>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+          <Btn onClick={() => exportPDF("recettes")} color={T.red} outline full>🖨️ PDF Recettes</Btn>
+          <Btn onClick={() => exportExcel("recettes")} color={T.green} outline full>📊 Excel Recettes</Btn>
+        </div>
+        <Btn onClick={() => exportExcel("planning")} color={T.blue} full>📊 Excel Planning complet</Btn>
+      </Card>
+
+      {/* RECETTES PAR ROUTE */}
+      <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>📍 Par route</div>
+      {Object.keys(byRoute).length === 0 ? (
+        <Card T={T} style={{ textAlign: "center", padding: "20px 0", color: T.textMuted, fontSize: 12 }}>Aucune donnée pour ce filtre</Card>
+      ) : Object.entries(byRoute).sort((a, b) => b[1].total - a[1].total).map(([route, d]) => (
+        <Card key={route} T={T} border={T.blue}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: T.text }}>{route}</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: T.gold }}>{d.total.toLocaleString()} F</div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.textSub }}>
+            <span>{d.billets} billet(s)</span>
+            <span>Moy. {Math.round(d.total / d.billets).toLocaleString()} F</span>
+          </div>
+          <div style={{ height: 4, background: T.border, borderRadius: 4, overflow: "hidden", marginTop: 8 }}>
+            <div style={{ width: `${Math.round(d.total / totalRecettes * 100)}%`, height: "100%", background: T.blue, borderRadius: 4 }} />
+          </div>
+        </Card>
+      ))}
+
+      {/* PAR MODE DE PAIEMENT */}
+      {Object.keys(byPaiement).length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, margin: "14px 0 10px" }}>💳 Par mode de paiement</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+            {Object.entries(byPaiement).sort((a, b) => b[1] - a[1]).map(([mode, montant]) => (
+              <Card key={mode} T={T} style={{ padding: "10px 12px", borderLeft: `3px solid ${paiementColors[mode] || T.textMuted}` }}>
+                <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 700 }}>{mode}</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: paiementColors[mode] || T.text, marginTop: 3 }}>{montant.toLocaleString()} F</div>
+                <div style={{ fontSize: 10, color: T.textMuted }}>{Math.round(montant / totalRecettes * 100)}%</div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* PAR CAISSIER */}
+      {Object.keys(byCaissier).length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, margin: "14px 0 10px" }}>👤 Par caissier</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+            {Object.entries(byCaissier).sort((a, b) => b[1].total - a[1].total).map(([nom, d]) => {
+              const pct = totalRecettes > 0 ? Math.round(d.total / totalRecettes * 100) : 0;
+              return (
+                <Card key={nom} T={T} style={{ padding: "12px 14px", borderLeft: `3px solid ${T.purple}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: T.text, marginBottom: 2 }}>{nom}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: T.purple }}>{d.total.toLocaleString()} F</div>
+                  <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 6 }}>{d.billets} billet(s) · {pct}%</div>
+                  <div style={{ height: 3, background: T.border, borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: T.purple, borderRadius: 4 }} />
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* GRAPHIQUE BARRES PAR ROUTE */}
+      {Object.keys(byRoute).length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, margin: "14px 0 10px" }}>📊 Graphique recettes par route</div>
+          <Card T={T} style={{ marginBottom: 14, padding: "14px 14px 10px" }}>
+            {(() => {
+              const maxVal = Math.max(...Object.values(byRoute).map(d => d.total));
+              return Object.entries(byRoute).sort((a, b) => b[1].total - a[1].total).map(([route, d]) => {
+                const pct = maxVal > 0 ? Math.round(d.total / maxVal * 100) : 0;
+                const shortRoute = route.replace(" → ", "→").length > 20 ? route.replace(" → ", "→").substring(0, 18) + "…" : route.replace(" → ", "→");
+                return (
+                  <div key={route} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                      <span style={{ color: T.textSub, fontWeight: 600 }}>{shortRoute}</span>
+                      <span style={{ fontWeight: 800, color: T.gold }}>{d.total.toLocaleString()} F</span>
+                    </div>
+                    <div style={{ height: 10, background: T.border, borderRadius: 6, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg, ${T.gold}, ${T.orange})`, borderRadius: 6, transition: "width 0.4s" }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: T.textMuted, marginTop: 2 }}>{d.billets} billet(s) · moy. {Math.round(d.total / d.billets).toLocaleString()} F</div>
+                  </div>
+                );
+              });
+            })()}
+          </Card>
+        </>
+      )}
+
+      {/* LISTE DES VENTES */}
+      <div style={{ fontSize: 12, fontWeight: 800, color: T.textSub, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>🎫 Détail des ventes ({ventesFiltrees.length})</div>
+      {ventesFiltrees.length === 0 ? (
+        <Card T={T} style={{ textAlign: "center", padding: 20, color: T.textMuted, fontSize: 12 }}>Aucune vente</Card>
+      ) : ventesFiltrees.slice().reverse().map(v => (
+        <div key={v.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${T.border}`, fontSize: 12, alignItems: "center" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
+              <span style={{ fontWeight: 800, color: T.gold }}>{v.ticketId}</span>
+              <span style={{ background: `${T.blue}22`, color: T.blue, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>Siège {v.siege || "—"}</span>
+            </div>
+            <div style={{ color: T.textSub, fontSize: 11 }}>{v.dest} · {v.heureDep || "—"} · {v.date || "—"}</div>
+            <div style={{ color: T.textMuted, fontSize: 10 }}>{v.passager}{v.passagerTel ? ` · 📞 ${v.passagerTel}` : ""} · {v.caissier} · {v.paiement}</div>
+          </div>
+          <div style={{ textAlign: "right", marginLeft: 8 }}>
+            <div style={{ fontWeight: 800, color: T.gold }}>{v.prix.toLocaleString()} F</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLOUD SYNC — JSONBin.io
+// ═══════════════════════════════════════════════════════════
+const JSONBIN_API = "https://api.jsonbin.io/v3";
+
+function getJsonbinKey() {
+  return localStorage.getItem("transitpro_jsonbin_key") || "";
+}
+function setJsonbinKey(key) {
+  localStorage.setItem("transitpro_jsonbin_key", key.trim());
+}
+
+async function cloudCreate(data) {
+  const key = getJsonbinKey();
+  if (!key) throw new Error("Aucune clé API configurée. Allez dans Configuration > Synchronisation.");
+  const r = await fetch(`${JSONBIN_API}/b`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Master-Key": key, "X-Bin-Private": "false" },
+    body: JSON.stringify(data),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    throw new Error(j.message || `Erreur ${r.status}`);
+  }
+  return j.metadata?.id || null;
+}
+
+async function cloudRead(binId) {
+  const key = getJsonbinKey();
+  if (!key) throw new Error("Aucune clé API configurée. Allez dans Configuration > Synchronisation.");
+  const r = await fetch(`${JSONBIN_API}/b/${binId}/latest`, {
+    headers: { "X-Master-Key": key },
+  });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.message || `Erreur ${r.status}`);
+  }
+  const j = await r.json();
+  return j.record || null;
+}
+
+async function cloudWrite(binId, data) {
+  const key = getJsonbinKey();
+  if (!key) return false;
+  const r = await fetch(`${JSONBIN_API}/b/${binId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Master-Key": key },
+    body: JSON.stringify(data),
+  });
+  return r.ok;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MENU PROFIL — Modifier profil / mot de passe / sync / déconnexion
+// ═══════════════════════════════════════════════════════════
+function ProfileMenu({ user, db, setDB, T, binId, onLogout, onForceSync, lastSync }) {
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState("menu"); // menu | profil | password
+  const [nom, setNom] = useState(user.nom);
+  const [login, setLogin] = useState(user.login);
+  const [oldPin, setOldPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [err, setErr] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setView("menu"); setErr(""); } };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("touchstart", onClick);
+    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("touchstart", onClick); };
+  }, []);
+
+  const saveProfil = () => {
+    setErr("");
+    if (!nom.trim()) { setErr("Le nom est requis"); return; }
+    if (!login.trim()) { setErr("Le login est requis"); return; }
+    if (login.trim() !== user.login && db.users.find(u => u.login === login.trim())) { setErr("Ce login est déjà utilisé"); return; }
+    setDB(d => ({ ...d, users: d.users.map(u => u.id === user.id ? { ...u, nom: nom.trim(), login: login.trim() } : u) }));
+    setView("menu"); setOpen(false);
+  };
+
+  const savePassword = () => {
+    setErr("");
+    if (oldPin !== user.pin) { setErr("PIN actuel incorrect"); return; }
+    if (newPin.length !== 4) { setErr("Le nouveau PIN doit faire 4 chiffres"); return; }
+    if (newPin !== confirmPin) { setErr("Les PIN ne correspondent pas"); return; }
+    setDB(d => ({ ...d, users: d.users.map(u => u.id === user.id ? { ...u, pin: newPin } : u) }));
+    setOldPin(""); setNewPin(""); setConfirmPin("");
+    setView("menu"); setOpen(false);
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await onForceSync();
+    setTimeout(() => setSyncing(false), 600);
+  };
+
+  const inpSt = { width: "100%", background: T.inputBg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box", marginBottom: 10 };
+  const itemSt = { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 14px", background: "none", border: "none", color: T.text, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left", borderRadius: 8 };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button onClick={() => { setOpen(o => !o); setView("menu"); setErr(""); }}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: T.surfaceLL, border: `1px solid ${T.border}`, borderRadius: 20, padding: "4px 10px 4px 4px", cursor: "pointer" }}>
+        <div style={{ width: 24, height: 24, borderRadius: "50%", background: user.role === "admin" ? T.gold : T.blue, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "#fff" }}>{user.nom[0]}</div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>▾</span>
+      </button>
+
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 250, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: "0 8px 30px #0008", zIndex: 200, overflow: "hidden" }}>
+
+          {view === "menu" && (
+            <div style={{ padding: 8 }}>
+              <div style={{ padding: "8px 14px 10px", borderBottom: `1px solid ${T.border}`, marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{user.nom}</div>
+                <div style={{ fontSize: 10, color: T.textMuted }}>@{user.login} · {user.role}</div>
+              </div>
+              <button onClick={() => setView("profil")} style={itemSt} onMouseDown={e => e.preventDefault()}>👤 Modifier profil</button>
+              <button onClick={() => setView("password")} style={itemSt} onMouseDown={e => e.preventDefault()}>🔒 Modifier mot de passe</button>
+              <button onClick={handleSync} style={itemSt} onMouseDown={e => e.preventDefault()} disabled={syncing}>
+                {syncing ? "⏳ Synchronisation..." : "☁️ Synchroniser maintenant"}
+              </button>
+              {binId && lastSync && <div style={{ padding: "2px 14px 8px", fontSize: 9, color: T.textMuted }}>Dernière sync : {lastSync}</div>}
+              <div style={{ height: 1, background: T.border, margin: "4px 0" }} />
+              <button onClick={onLogout} style={{ ...itemSt, color: T.red }} onMouseDown={e => e.preventDefault()}>🚪 Déconnexion</button>
+            </div>
+          )}
+
+          {view === "profil" && (
+            <div style={{ padding: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: T.gold }}>👤 Modifier profil</span>
+                <button onClick={() => setView("menu")} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 13, cursor: "pointer" }}>←</button>
+              </div>
+              <input value={nom} onChange={e => setNom(e.target.value)} placeholder="Nom complet" style={inpSt} />
+              <input value={login} onChange={e => setLogin(e.target.value)} placeholder="Login" style={inpSt} />
+              {err && <div style={{ color: T.red, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>⚠️ {err}</div>}
+              <button onClick={saveProfil} style={{ width: "100%", padding: 10, borderRadius: 8, background: T.gold, color: "#fff", border: "none", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Enregistrer</button>
+            </div>
+          )}
+
+          {view === "password" && (
+            <div style={{ padding: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: T.gold }}>🔒 Modifier mot de passe</span>
+                <button onClick={() => setView("menu")} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 13, cursor: "pointer" }}>←</button>
+              </div>
+              <input type="password" value={oldPin} onChange={e => setOldPin(e.target.value.slice(0,4))} placeholder="PIN actuel" style={inpSt} />
+              <input type="password" value={newPin} onChange={e => setNewPin(e.target.value.slice(0,4))} placeholder="Nouveau PIN (4 chiffres)" style={inpSt} />
+              <input type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value.slice(0,4))} placeholder="Confirmer le nouveau PIN" style={inpSt} />
+              {err && <div style={{ color: T.red, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>⚠️ {err}</div>}
+              <button onClick={savePassword} style={{ width: "100%", padding: 10, borderRadius: 8, background: T.gold, color: "#fff", border: "none", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Changer le PIN</button>
+            </div>
+          )}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOOK RESPONSIVE — détecte la taille d'écran
+// ═══════════════════════════════════════════════════════════
+function useViewport() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 390);
+  useEffect(() => {
+    const onResize = () => setW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return {
+    width: w,
+    isDesktop: w >= 900,
+    isTablet: w >= 640 && w < 900,
+    isMobile: w < 640,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// APP PRINCIPALE
+// ═══════════════════════════════════════════════════════════
+function App() {
+  const vp = useViewport();
+
+  const loadSession = () => {
+    try {
+      const raw = localStorage.getItem("transitpro_session");
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  };
+
+  const session = loadSession();
+
+  useEffect(() => {
+    if (!session) window.location.href = "login.html";
+  }, []);
+
+  const [isDark, setIsDark] = useState(() => session?.isDark !== false);
+  const T = themes[isDark ? "dark" : "light"];
+  const [db, setDB] = useState(() => session?.db || null);
+  const [binId, setBinId] = useState(() => session?.binId || null);
+  const [user, setUser] = useState(() => {
+    if (!session?.db || !session?.userId) return null;
+    return session.db.users?.find(u => u.id === session.userId) || null;
+  });
+  const [tab, setTab] = useState(() => {
+    if (!session?.db || !session?.userId) return "dashboard";
+    const u = session.db.users?.find(u => u.id === session.userId);
+    return u?.modules?.[0] || "dashboard";
+  });
+  const [tick, setTick] = useState("");
+  const [lastSync, setLastSync] = useState("");
+  const syncTimerRef = useRef(null);
+
+  useEffect(() => {
+    const t = setInterval(() => setTick(new Date().toLocaleTimeString("fr-FR")), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (!binId || !db) return;
+    if (syncTimerRef.current) clearInterval(syncTimerRef.current);
+    syncTimerRef.current = setInterval(() => {
+      cloudWrite(binId, db).then(ok => { if (ok) setLastSync(new Date().toLocaleTimeString("fr-FR")); }).catch(() => {});
+    }, 8000);
+    return () => clearInterval(syncTimerRef.current);
+  }, [binId, db]);
+
+  const setDBSynced = (updater) => {
+    setDB(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      try {
+        const raw = localStorage.getItem("transitpro_session");
+        if (raw) {
+          const sess = JSON.parse(raw);
+          localStorage.setItem("transitpro_session", JSON.stringify({ ...sess, db: next }));
+        }
+      } catch {}
+      if (binId) cloudWrite(binId, next).then(ok => { if (ok) setLastSync(new Date().toLocaleTimeString("fr-FR")); }).catch(() => {});
+      return next;
+    });
+  };
+
+  const forceSync = async () => {
+    if (!binId) return;
+    const ok = await cloudWrite(binId, db).catch(() => false);
+    if (ok) setLastSync(new Date().toLocaleTimeString("fr-FR"));
+  };
+
+  const activateCloud = async () => {
+    try {
+      const id = await cloudCreate(db);
+      if (id) {
+        setBinId(id);
+        const saved = JSON.parse(localStorage.getItem("transitpro_bin") || "{}");
+        localStorage.setItem("transitpro_bin", JSON.stringify({ ...saved, id }));
+      }
+    } catch {}
+  };
+
+  const handleLogout = () => {
+    try {
+      const raw = localStorage.getItem("transitpro_session");
+      if (raw) {
+        const sess = JSON.parse(raw);
+        localStorage.setItem("transitpro_session", JSON.stringify({ ...sess, userId: null }));
+      }
+    } catch {}
+    window.location.href = "login.html";
+  };
+
+  if (!db || !user) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#07121F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "#E8A020", fontSize: 40 }}>🚌</div>
+      </div>
+    );
+  }
+
+  const navTabs = ALL_MODULES.filter(m => user.modules.includes(m.id));
+  const titles = { dashboard: "Accueil", caisse: "Ma Caisse", vente: "Vente Billet", bagages: "Bagages", colis: "Colis Express", planning: "Planning", recettes: "Recettes", rapports: "Rapports", config: "Configuration" };
+  const c = db.compagnie;
+  const { isDesktop, isTablet, isMobile } = vp;
+  const useSidebar = isDesktop || isTablet;
+  const contentMaxWidth = isDesktop ? 1100 : isTablet ? 760 : 430;
+
+  return (
+    <div style={{ fontFamily: "'Inter',sans-serif", background: T.bg, minHeight: "100vh", color: T.text }}>
+      <div style={{ display: "flex", maxWidth: useSidebar ? "100%" : 430, margin: "0 auto" }}>
+
+        {/* SIDEBAR */}
+        {useSidebar && (
+          <nav style={{ width: isDesktop ? 220 : 84, flexShrink: 0, background: T.surface, borderRight: `1px solid ${T.border}`, minHeight: "100vh", position: "sticky", top: 0, display: "flex", flexDirection: "column", padding: "18px 0" }}>
+            <div style={{ padding: isDesktop ? "0 18px 18px" : "0 8px 18px", borderBottom: `1px solid ${T.border}`, marginBottom: 10, textAlign: isDesktop ? "left" : "center" }}>
+              <div style={{ fontSize: isDesktop ? 19 : 24, fontWeight: 900, color: T.gold }}>{c.logo}{isDesktop ? ` ${c.nom}` : ""}</div>
+              {isDesktop && <div style={{ fontSize: 10, color: T.textMuted, marginTop: 2 }}>{c.ville}</div>}
+            </div>
+            {navTabs.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", justifyContent: isDesktop ? "flex-start" : "center", padding: isDesktop ? "11px 18px" : "12px 4px", border: "none", background: tab === t.id ? `${T.gold}18` : "none", color: tab === t.id ? T.gold : T.textSub, cursor: "pointer", fontSize: isDesktop ? 13 : 9, fontWeight: tab === t.id ? 800 : 600, borderLeft: `3px solid ${tab === t.id ? T.gold : "transparent"}`, flexDirection: isDesktop ? "row" : "column" }}>
+                <span style={{ fontSize: isDesktop ? 16 : 18 }}>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {/* CONTENU */}
+        <div style={{ flex: 1, minWidth: 0, paddingBottom: useSidebar ? 0 : 86 }}>
+          <div style={{ background: T.surface, padding: useSidebar ? "16px 24px" : "14px 14px 10px", borderBottom: `2px solid ${T.gold}`, position: "sticky", top: 0, zIndex: 50 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: contentMaxWidth, margin: "0 auto" }}>
+              <div>
+                {!useSidebar && <div style={{ fontSize: 17, fontWeight: 900, color: T.gold }}>{c.logo} {c.nom}</div>}
+                <div style={{ fontSize: useSidebar ? 18 : 10, fontWeight: useSidebar ? 800 : 400, color: useSidebar ? T.text : T.textMuted, textTransform: useSidebar ? "none" : "uppercase", letterSpacing: useSidebar ? 0 : 0.8 }}>{titles[tab]}</div>
+              </div>
+              <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+                <span style={{ fontSize: 10, color: T.textMuted }}>{tick}</span>
+                <button onClick={() => setIsDark(d => !d)} style={{ background: T.surfaceLL, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 9px", fontSize: 14, cursor: "pointer" }}>{isDark ? "☀️" : "🌙"}</button>
+                <ProfileMenu user={user} db={db} setDB={setDBSynced} T={T} binId={binId} lastSync={lastSync} onForceSync={forceSync} onLogout={handleLogout} />
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: T.textSub, marginTop: 3, maxWidth: contentMaxWidth, margin: "3px auto 0" }}>{user.nom} · {user.role} {binId && <span style={{ color: T.textMuted, fontSize: 9, fontFamily: "monospace" }}>☁️</span>}</div>
+          </div>
+
+          <div style={{ paddingTop: 14, maxWidth: contentMaxWidth, margin: "0 auto" }}>
+            {tab === "dashboard" && <DashboardSection db={db} T={T} user={user} onNavigate={setTab} />}
+            {tab === "caisse"    && <CaisseSection db={db} setDB={setDBSynced} user={user} T={T} />}
+            {tab === "vente"     && <VenteSection db={db} setDB={setDBSynced} user={user} T={T} />}
+            {tab === "planning"  && <PlanningSection db={db} setDB={setDBSynced} T={T} />}
+            {tab === "recettes"  && <RecettesSection db={db} setDB={setDBSynced} T={T} />}
+            {tab === "bagages"   && <BagagesSection db={db} setDB={setDBSynced} user={user} T={T} />}
+            {tab === "colis"     && <ColisExpressSection db={db} setDB={setDBSynced} user={user} T={T} />}
+            {tab === "rapports"  && <RapportsSection db={db} T={T} />}
+            {tab === "config"    && <ConfigSection db={db} setDB={setDBSynced} T={T} binId={binId} onActivateCloud={activateCloud} />}
+          </div>
+        </div>
+      </div>
+
+      {/* NAV BAS — Mobile */}
+      {!useSidebar && (
+        <nav style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: T.surface, borderTop: `1px solid ${T.border}`, display: "flex", zIndex: 100 }}>
+          {navTabs.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{ flex: 1, padding: "9px 2px 7px", border: "none", background: "none", color: tab === t.id ? T.gold : T.textMuted, cursor: "pointer", fontSize: 9, fontWeight: tab === t.id ? 700 : 500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, borderTop: `2px solid ${tab === t.id ? T.gold : "transparent"}` }}>
+              <span style={{ fontSize: 18 }}>{t.icon}</span>{t.label}
+            </button>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js")
+        .then(r => console.log("TransitPro SW:", r.scope))
+        .catch(e => console.log("SW erreur:", e));
+    });
+  }
+</script>
+</body>
+</html>
